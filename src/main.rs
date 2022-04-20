@@ -19,7 +19,7 @@ fn main() {
 }
 
 fn run(line: &str) {
-    let val = calculate(line);
+    let val = calculate(line.trim());
     if val.is_ok() {
         println!("{}", val.unwrap());
     } else {

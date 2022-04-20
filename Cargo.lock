@@ -21,9 +21,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.123"
+version = "0.2.124"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb691a747a7ab48abc15c5b42066eaafde10dc427e3b6ee2a1cf43db04c763bd"
+checksum = "21a41fed9d98f27ab1c6d161da622a4fa35e8a54a8adc24bbf3ddd0ef70b0e50"
 
 [[package]]
 name = "math-repl"
@@ -71,7 +71,7 @@ dependencies = [
 [[package]]
 name = "rusty-maths"
 version = "0.1.0"
-source = "git+https://github.com/ShaneMarusczak/rusty-maths#42c54aa974a045b952a063d7d13896399f7de984"
+source = "git+https://github.com/ShaneMarusczak/rusty-maths#3db1fd4835a4ef3f4ad124ce76ad3d0ed4e12e63"
 dependencies = [
  "rand",
 ]
