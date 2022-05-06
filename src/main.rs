@@ -1,5 +1,6 @@
 use rusty_maths::equation_analyzer::calculator::calculate;
 use std::io::{self, Write};
+use std::process::exit;
 
 fn main() {
     println!("Math!");
@@ -11,15 +12,22 @@ fn main() {
             .read_line(&mut line)
             .expect("Failed to read line");
 
-        if line.len() == 0 {
-            // break;
+        let line_trim = line.trim();
+
+        if line_trim.is_empty() {
+            continue;
         }
-        run(&line);
+
+        if line_trim.eq("q") {
+            exit(0);
+        }
+
+        run(line_trim);
     }
 }
 
 fn run(line: &str) {
-    let val = calculate(line.trim());
+    let val = calculate(line);
     if val.is_ok() {
         println!("{}", val.unwrap());
     } else {
