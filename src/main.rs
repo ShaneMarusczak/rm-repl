@@ -6,7 +6,7 @@ fn main() {
     println!("Math!");
     loop {
         print!("> ");
-        io::stdout().flush().unwrap();
+        io::stdout().flush().unwrap_or_default();
         let mut line = String::new();
         io::stdin()
             .read_line(&mut line)
