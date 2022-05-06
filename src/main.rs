@@ -31,6 +31,6 @@ fn run(line: &str) {
     if val.is_ok() {
         println!("{}", val.unwrap());
     } else {
-        println!("{}", val.unwrap_err());
+        eprintln!("{}", val.unwrap_err());
     }
 }
