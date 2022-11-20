@@ -2,8 +2,17 @@ use rusty_maths::equation_analyzer::calculator::calculate;
 use std::io::{self, Write};
 use std::process::exit;
 
+mod repl;
+use repl::Repl;
+
 fn main() {
-    println!("Math!");
+    println!("Math!\n");
+
+    let mut repl = Repl {
+        previous_answer: 0.0,
+        previous_answer_valid: false,
+    };
+
     loop {
         print!("> ");
         io::stdout().flush().unwrap_or_default();
@@ -22,15 +31,29 @@ fn main() {
             exit(0);
         }
 
-        run(line_trim);
+        let ans_requested = line_trim.contains("ans");
+
+        if repl.previous_answer_valid && ans_requested {
+            let new_line = &line_trim.replace("ans", &repl.previous_answer.to_string());
+            run(new_line, &mut repl);
+        } else if !repl.previous_answer_valid && ans_requested {
+            eprintln!("Invalid use of ans");
+            continue;
+        } else {
+            run(line_trim, &mut repl);
+        }
     }
 }
 
-fn run(line: &str) {
+fn run(line: &str, repl: &mut Repl) {
     let val = calculate(line);
-    if val.is_ok() {
-        println!("{}", val.unwrap());
+    if let Ok(v) = val {
+        repl.previous_answer = v;
+        repl.previous_answer_valid = true;
+        println!("{}", v);
     } else {
+        repl.previous_answer = 0.0;
+        repl.previous_answer_valid = false;
         eprintln!("{}", val.unwrap_err());
     }
 }
