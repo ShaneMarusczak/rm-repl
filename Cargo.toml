@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
  rusty-maths = { git = "https://github.com/ShaneMarusczak/rusty-maths"}
+ graplot = "0.1.21"
