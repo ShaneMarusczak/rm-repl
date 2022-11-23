@@ -9,6 +9,6 @@ pub(crate) fn run(line: &str, repl: &mut Repl) {
         println!("{}", v);
     } else {
         repl.previous_answer(0.0, false);
-        eprintln!("{}", val.unwrap_err());
+        eprintln!("{}", val.unwrap_err().to_lowercase());
     }
 }

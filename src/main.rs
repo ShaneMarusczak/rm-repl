@@ -5,7 +5,7 @@ mod repl;
 mod run;
 
 fn main() {
-    println!("Math!\n");
+    println!("  math!\n");
 
     let mut repl = repl::Repl {
         previous_answer: 0.0,
@@ -24,7 +24,7 @@ fn main() {
             commands::run_command(stripped, &mut repl);
             continue;
         } else if !repl.previous_answer_valid && line.contains("ans") {
-            eprintln!("Invalid use of ans");
+            eprintln!("invalid use of ans");
             continue;
         } else {
             run::run(
@@ -39,7 +39,7 @@ fn read_line() -> String {
     let mut line = String::new();
     io::stdin()
         .read_line(&mut line)
-        .expect("Failed to read line");
+        .expect("failed to read line");
 
     let line_trim = line.trim();
 
