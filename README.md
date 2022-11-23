@@ -1,6 +1,7 @@
-# rm-repl
+# rm-repl   [![Rust](https://github.com/ShaneMarusczak/rm-repl/actions/workflows/rust.yml/badge.svg?branch=main&event=push)](https://github.com/ShaneMarusczak/rm-repl/actions/workflows/rust.yml)
 
 a simple repl for rusty maths
+
 
 ## installation
 
