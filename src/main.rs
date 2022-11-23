@@ -105,7 +105,7 @@ fn p() {
     let points = plot(eq.trim(), x_min, x_max, step_size);
 
     if let Ok(points) = points {
-        Chart::new(240, 120, x_min, x_max)
+        Chart::new(120, 60, x_min, x_max)
             .lineplot(&Shape::Lines(&points))
             .display();
     }
