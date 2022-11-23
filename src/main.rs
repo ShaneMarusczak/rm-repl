@@ -1,4 +1,5 @@
-use graplot::Plot;
+use textplots::{Chart, Plot, Shape};
+
 use rusty_maths::equation_analyzer::calculator::{calculate, plot};
 use std::io::{self, Write};
 use std::process::exit;
@@ -104,17 +105,7 @@ fn p() {
         step_size.trim().parse::<f32>().unwrap(),
     );
 
-    let mut xs = vec![];
-    let mut ys = vec![];
-
     if let Ok(points) = points {
-        for point in points {
-            xs.push(point.0);
-            ys.push(point.1);
-        }
-        let mut plot = Plot::new((xs, ys));
-        plot.set_title(&eq);
-        plot.show();
-        println!("got here");
+        Chart::default().lineplot(&Shape::Lines(&points)).display();
     }
 }
