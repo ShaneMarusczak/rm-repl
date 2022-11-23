@@ -79,33 +79,34 @@ fn p() {
 
     print!("x min: ");
     io::stdout().flush().unwrap_or_default();
-    let mut x_min = String::new();
+    let mut x_mi = String::new();
     io::stdin()
-        .read_line(&mut x_min)
+        .read_line(&mut x_mi)
         .expect("Failed to read line");
 
     print!("x max: ");
     io::stdout().flush().unwrap_or_default();
-    let mut x_max = String::new();
+    let mut x_mx = String::new();
     io::stdin()
-        .read_line(&mut x_max)
+        .read_line(&mut x_mx)
         .expect("Failed to read line");
 
     print!("step size: ");
     io::stdout().flush().unwrap_or_default();
-    let mut step_size = String::new();
+    let mut step_sz = String::new();
     io::stdin()
-        .read_line(&mut step_size)
+        .read_line(&mut step_sz)
         .expect("Failed to read line");
 
-    let points = plot(
-        eq.trim(),
-        x_min.trim().parse::<f32>().unwrap(),
-        x_max.trim().parse::<f32>().unwrap(),
-        step_size.trim().parse::<f32>().unwrap(),
-    );
+    let x_min = x_mi.trim().parse::<f32>().unwrap();
+    let x_max = x_mx.trim().parse::<f32>().unwrap();
+    let step_size = step_sz.trim().parse::<f32>().unwrap();
+
+    let points = plot(eq.trim(), x_min, x_max, step_size);
 
     if let Ok(points) = points {
-        Chart::default().lineplot(&Shape::Lines(&points)).display();
+        Chart::new(240, 120, x_min, x_max)
+            .lineplot(&Shape::Lines(&points))
+            .display();
     }
 }
