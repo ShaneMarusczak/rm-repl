@@ -1,5 +1,5 @@
 [package]
-name = "math-repl"
+name = "rmr"
 version = "0.1.0"
 edition = "2021"
 
