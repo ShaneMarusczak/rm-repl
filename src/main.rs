@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 
 mod commands;
+mod inputs;
 mod repl;
 mod run;
 
@@ -13,9 +14,6 @@ fn main() {
     };
 
     loop {
-        print!("> ");
-        io::stdout().flush().unwrap_or_default();
-
         let line = read_line();
 
         if line.is_empty() {
@@ -36,6 +34,8 @@ fn main() {
 }
 
 fn read_line() -> String {
+    print!("> ");
+    io::stdout().flush().unwrap_or_default();
     let mut line = String::new();
     io::stdin()
         .read_line(&mut line)

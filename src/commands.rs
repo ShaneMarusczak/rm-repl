@@ -1,17 +1,21 @@
-use std::{
-    io::{self, Write},
-    process::exit,
-};
+use std::process::exit;
 
-use rusty_maths::equation_analyzer::calculator::plot;
+use rusty_maths::{
+    equation_analyzer::calculator::plot,
+    linear_algebra::{vector_mean, vector_sum},
+};
 use textplots::{Chart, Plot, Shape};
 
-use crate::repl::{PreviousAnswer, Repl};
+use crate::{
+    inputs::{get_matrix_input, get_numberical_input, get_textual_input},
+    repl::{PreviousAnswer, Repl},
+};
 
 pub(crate) fn run_command(line: &str, repl: &mut Repl) {
     match line {
-        "q" => exit(0),
-        "p" => p(),
+        "q" | "quit" => exit(0),
+        "p" | "plot" => p(),
+        "la" | "linear algebra" => la(),
         _ => {
             eprintln!("invalid command");
             repl.previous_answer(0.0, false);
@@ -19,67 +23,35 @@ pub(crate) fn run_command(line: &str, repl: &mut Repl) {
     }
 }
 
-fn p() {
-    print!("equation: ");
-    io::stdout().flush().unwrap_or_default();
-    let mut eq = String::new();
-    io::stdin().read_line(&mut eq).expect("failed to read line");
-
-    let x_min: f32;
+fn la() {
     loop {
-        print!("x min: ");
-        io::stdout().flush().unwrap_or_default();
-        let mut x_mi = String::new();
-        io::stdin()
-            .read_line(&mut x_mi)
-            .expect("failed to read line");
+        let op_code = get_textual_input("operation: ");
 
-        if let Ok(x) = x_mi.trim().parse::<f32>() {
-            x_min = x;
-            break;
-        } else {
-            eprintln!("unable to parse x min");
-        }
-    }
-
-    let x_max: f32;
-
-    loop {
-        print!("x max: ");
-        io::stdout().flush().unwrap_or_default();
-        let mut x_mx = String::new();
-        io::stdin()
-            .read_line(&mut x_mx)
-            .expect("failed to read line");
-
-        if let Ok(x) = x_mx.trim().parse::<f32>() {
-            if x <= x_min {
-                eprintln!("x max cannot be equal to or less than x min");
-            } else {
-                x_max = x;
-                break;
+        match op_code.trim() {
+            "vs" | "vector sum" => {
+                let m = get_matrix_input();
+                let sum = vector_sum(&m);
+                println!("{:#?}", sum);
             }
-        } else {
-            eprintln!("unable to parse x max");
+            "vm" | "vector mean" => {
+                let m = get_matrix_input();
+                let sum = vector_mean(&m);
+                println!("{:#?}", sum);
+            }
+            "b" | "back" => break,
+            _ => eprintln!("invalid operation"),
         }
     }
+}
 
-    let step_size: f32;
-    loop {
-        print!("step size: ");
-        io::stdout().flush().unwrap_or_default();
-        let mut step_sz = String::new();
-        io::stdin()
-            .read_line(&mut step_sz)
-            .expect("failed to read line");
+fn p() {
+    let eq: String = get_textual_input("equation: ");
 
-        if let Ok(x) = step_sz.trim().parse::<f32>() {
-            step_size = x;
-            break;
-        } else {
-            eprintln!("unable to parse step size");
-        }
-    }
+    let x_min: f32 = get_numberical_input("x min: ");
+
+    let x_max: f32 = get_numberical_input("x max: ");
+
+    let step_size: f32 = get_numberical_input("step size: ");
 
     let points = plot(eq.trim(), x_min, x_max, step_size);
 
