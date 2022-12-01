@@ -1,9 +1,14 @@
 use rusty_maths::equation_analyzer::calculator::calculate;
 
-use crate::repl::{PreviousAnswer, Repl};
+use crate::{
+    repl::{PreviousAnswer, Repl},
+    variables,
+};
 
 pub(crate) fn run(line: &str, repl: &mut Repl) {
-    let val = calculate(line);
+    let line_internal = variables::insert_ans_vars(line, repl);
+
+    let val = calculate(&line_internal);
     if let Ok(v) = val {
         repl.previous_answer(v, true);
         println!("{}", v);
