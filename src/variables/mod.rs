@@ -25,11 +25,9 @@ pub(crate) fn insert_ans_vars(str: &str, repl: &repl::Repl) -> String {
     }
 
     if !repl.variables.is_empty() {
-        for k in repl.variables.keys() {
-            let from = k.to_string();
-            let to = repl.variables.get(k).unwrap();
-            str = str.replace(&from, to);
-        }
+        repl.variables
+            .iter()
+            .for_each(|(from, to)| str = str.replace(*from, to));
     }
     str
 }
