@@ -4,11 +4,10 @@ mod commands;
 mod inputs;
 mod repl;
 mod run;
-mod utils;
 mod variables;
 
 fn main() {
-    println!("math!");
+    println!("\n--rusty math repl--\n");
 
     let mut repl = repl::Repl {
         previous_answer: 0.0,
@@ -17,15 +16,17 @@ fn main() {
     };
 
     loop {
-        let line = utils::read_line();
+        let line = inputs::get_textual_input(">>");
 
         if line.is_empty() {
             continue;
         } else if let Some(stripped) = line.strip_prefix(':') {
-            commands::run_command(stripped, &mut repl);
-            continue;
+            match stripped {
+                "q" | "quit" => break,
+                _ => commands::run_command(stripped, &mut repl),
+            }
         } else if !repl.previous_answer_valid && line.contains("ans") {
-            eprintln!("invalid use of ans");
+            eprintln!("invalid use of 'ans'");
             continue;
         } else if variables::is_variable(&line) {
             variables::handle_var(&line, &mut repl);

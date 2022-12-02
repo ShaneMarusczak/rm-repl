@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
  rusty-maths = { git = "https://github.com/ShaneMarusczak/rusty-maths"}
  textplots = "0.8.0"
+ rustyline = "10.0.0"

@@ -1,6 +1,7 @@
-use std::io::{self, Write};
+use std::process::exit;
 
 use rusty_maths::{equation_analyzer::calculator::calculate, linear_algebra::Matrix};
+use rustyline::error::ReadlineError;
 
 pub(crate) fn get_matrix_input() -> Matrix {
     let vec_amount: usize = get_numberical_input("vector count: ");
@@ -22,10 +23,7 @@ where
     T: std::str::FromStr,
 {
     loop {
-        print!("{}", msg);
-        io::stdout().flush().unwrap_or_default();
-        let mut s = String::new();
-        io::stdin().read_line(&mut s).expect("failed to read line");
+        let s = get_textual_input(msg);
 
         if let Ok(x) = s.trim().parse::<T>() {
             return x;
@@ -36,11 +34,14 @@ where
 }
 
 pub(crate) fn get_textual_input(msg: &str) -> String {
-    let mut text = String::new();
-    print!("{}", msg);
-    io::stdout().flush().unwrap_or_default();
-    io::stdin()
-        .read_line(&mut text)
-        .expect("failed to read line");
-    text.trim().to_string()
+    let mut rl = rustyline::Editor::<()>::new().unwrap();
+    let readline = rl.readline(msg);
+    match readline {
+        Ok(line) => line,
+        Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => exit(0),
+        Err(err) => {
+            eprintln!("Error: {:?}", err);
+            exit(0);
+        }
+    }
 }

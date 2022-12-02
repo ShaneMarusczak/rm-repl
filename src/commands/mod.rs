@@ -1,5 +1,3 @@
-use std::process::exit;
-
 use rusty_maths::{
     equation_analyzer::calculator::plot,
     linear_algebra::{vector_mean, vector_sum},
@@ -13,7 +11,6 @@ use crate::{
 
 pub(crate) fn run_command(line: &str, repl: &mut Repl) {
     match line {
-        "q" | "quit" => exit(0),
         "p" | "plot" => p(),
         "la" | "linear algebra" => la(),
         _ => {

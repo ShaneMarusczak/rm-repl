@@ -36,7 +36,7 @@ pub(crate) fn insert_ans_vars(str: &str, repl: &repl::Repl) -> String {
 
 pub(crate) fn is_variable(str: &str) -> bool {
     let str = str.to_owned();
-    if !str.starts_with(|c: char| c.is_alphabetic() && c.is_uppercase()) || str.len() < 2 {
+    if str.len() < 2 || !str.starts_with(|c: char| c.is_alphabetic() && c.is_uppercase()) {
         return false;
     }
     let second_is_equal = str.chars().nth(1).unwrap().eq(&'=');
