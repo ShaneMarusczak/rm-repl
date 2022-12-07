@@ -7,7 +7,7 @@ mod run;
 mod variables;
 
 fn main() {
-    println!("\n--rusty math repl--\n");
+    println!("\n--rusty maths repl--\n");
 
     let mut repl = repl::Repl {
         previous_answer: 0.0,
