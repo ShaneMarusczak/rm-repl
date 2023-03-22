@@ -4,11 +4,11 @@ use rusty_maths::{equation_analyzer::calculator::calculate, linear_algebra::Matr
 use rustyline::error::ReadlineError;
 
 pub(crate) fn get_matrix_input() -> Matrix {
-    let vec_amount: usize = get_numberical_input("vector count: ");
+    let vec_amount: usize = get_numerical_input("vector count: ");
     let mut m: Matrix = Vec::with_capacity(vec_amount);
     let entry_fn = get_textual_input("entry fn: ");
     for i in 0..vec_amount {
-        let vec_size: usize = get_numberical_input(&format!("vector {} size: ", i));
+        let vec_size: usize = get_numerical_input(&format!("vector {} size: ", i));
         m.push(Vec::with_capacity(vec_size));
         for x in 0..vec_size {
             let e_f = entry_fn.replace('x', &x.to_string());
@@ -18,7 +18,7 @@ pub(crate) fn get_matrix_input() -> Matrix {
     m
 }
 
-pub(crate) fn get_numberical_input<T>(msg: &str) -> T
+pub(crate) fn get_numerical_input<T>(msg: &str) -> T
 where
     T: std::str::FromStr,
 {
