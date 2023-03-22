@@ -3,7 +3,6 @@ use rusty_maths::{
     linear_algebra::{vector_mean, vector_sum},
     utilities::abs_f32,
 };
-use textplots::{Chart, Plot, Shape};
 
 use crate::{
     inputs::{get_matrix_input, get_numerical_input, get_textual_input},
@@ -27,7 +26,7 @@ fn h() {
     println!("this repl will evaluate arbitrary mathematical expressions");
     println!("example: (3 * sin(90)) / sqrt(3 * 4^3)\n");
     println!("each answer returned is stored in a reserved keyword 'ans' for use in the next line");
-    println!("exapmle: 5+5 \\\\10 ans + 5 \\\\15\n");
+    println!("example: 5+5 \\\\10 ans + 5 \\\\15\n");
     println!("each repl session can hold variables");
     println!("variables are denoted by starting a line with a captial letter, an equal sign, then an expression that evaulates to a single value");
     println!("examples: A=1 B=3*sin(90), C=A+B\n");
@@ -58,8 +57,8 @@ fn la() {
 }
 
 fn p() {
-    let width = 120;
-    let height = 60;
+    const WIDTH: usize = 120;
+    const HEIGHT: usize = 60;
 
     let eq: String = get_textual_input("equation: ");
 
@@ -67,20 +66,16 @@ fn p() {
 
     let x_max = get_numerical_input("x max: ");
 
-    let step_size = (x_max - x_min) / width as f32;
+    let step_size = (x_max - x_min) / WIDTH as f32;
 
     let mut y_min = f32::MAX;
     let mut y_max = f32::MIN;
 
     let points = plot(eq.trim(), x_min, x_max, step_size);
 
-    let mut matrix = make_matrix(height + 1, width + 1);
+    let mut matrix = make_matrix(HEIGHT + 1, WIDTH + 1);
 
     if let Ok(points) = points {
-        Chart::new(120, 60, x_min, x_max)
-            .lineplot(&Shape::Lines(&points))
-            .display();
-
         for point in &points {
             if point.1 < y_min {
                 y_min = point.1;
@@ -91,38 +86,34 @@ fn p() {
 
         let y_range = y_max - y_min;
 
-        let y_step = y_range / height as f32;
+        let y_step = y_range / HEIGHT as f32;
 
         let mut y_values = Vec::with_capacity(60);
 
-        for n in 0..=height {
+        for n in 0..=HEIGHT {
             let value = y_min + (y_step * n as f32);
             y_values.push(value);
         }
         let mut new_points = vec![];
         for (i, point) in points.iter().enumerate() {
             let x = i;
-            let y = get_y(&y_values, *point);
+            let y = get_y_2(&y_values, *point);
             new_points.push((x, y));
-
-            //SHOULD I ALSO GET SECOND CLOSEST?
         }
 
         for p in new_points {
-            // println!("{:?}", p);
-
-            matrix[p.1][p.0].0 = 1;
+            matrix[p.1 .0][p.0].0 = 1;
+            matrix[p.1 .1][p.0].0 = 1;
         }
         matrix.reverse();
 
-        //now i need to get braille from this matrix, the 1s are the dots to show
         #[derive(Debug)]
         struct BC {
             pattern: Vec<u8>,
         }
-        let mut chars = Vec::with_capacity(height / 4);
-        for _ in 0..(height / 4) {
-            chars.push(Vec::with_capacity(width / 2));
+        let mut chars = Vec::with_capacity(HEIGHT / 4);
+        for _ in 0..(HEIGHT / 4) {
+            chars.push(Vec::with_capacity(WIDTH / 2));
         }
         for i in 0..matrix.len() {
             for j in 0..matrix[i].len() {
@@ -134,7 +125,7 @@ fn p() {
                 for x in 0..=1 {
                     for y in 0..=2 {
                         if i + y < matrix.len() && j + x < matrix[i].len() {
-                            let val = matrix[i + y][j + x].clone();
+                            let val = matrix[i + y][j + x];
                             char.pattern.push(val.0);
                             matrix[i + y][j + x].1 = true;
                         }
@@ -143,7 +134,7 @@ fn p() {
                 for x in 0..=1 {
                     let y = 3;
                     if i + y < matrix.len() && j + x < matrix[i].len() {
-                        let val = matrix[i + y][j + x].clone();
+                        let val = matrix[i + y][j + x];
                         char.pattern.push(val.0);
                         matrix[i + y][j + x].1 = true;
                     }
@@ -163,42 +154,42 @@ fn p() {
 
                     let code_point = u32::from_str_radix(&braille_char, 16).unwrap();
                     let character = std::char::from_u32(code_point).unwrap();
-                    // println!("{}", character);
-
-                    // println!("{}", braille_char);
 
                     chars[i / 4].push(character);
                 }
             }
         }
-        // for n in 0..chars.len() {
-        //     println!("{:?}", chars[n]);
-        // }
-        // for row in matrix {
-        //     let mut s = String::new();
-        //     for cell in row {
-        //         if cell.0 == 0 {
-        //             s.push(' ');
-        //         } else {
-        //             s.push('.');
-        //         }
-        //     }
-        //     println!("{}", s);
-        // }
-        for row in chars {
+
+        println!("---------------------------------------------------------------");
+        for (i, row) in chars.iter().enumerate() {
             let mut s = String::new();
+            s.push('|');
+            s.push(' ');
             for cell in row {
-                s.push(cell);
+                s.push(*cell);
+            }
+            s.push(' ');
+            s.push('|');
+            if i == 0 {
+                s = s + &format!("{}", y_max);
+            } else if i == chars.len() - 1 {
+                s = s + &format!("{}", y_min);
             }
             println!("{}", s);
         }
+        println!("---------------------------------------------------------------");
+        println!(
+            "{}                                                             {}",
+            x_min, x_max
+        );
     } else {
         eprintln!("{}", points.unwrap_err());
     }
 }
 
-fn get_y(points: &Vec<f32>, point: (f32, f32)) -> usize {
+fn _get_y(points: &[f32], point: (f32, f32)) -> usize {
     let mut min_dif = f32::MAX;
+
     let mut rv = 0;
     for (i, p) in points.iter().enumerate() {
         let dif = abs_f32(point.1 - p);
@@ -208,17 +199,36 @@ fn get_y(points: &Vec<f32>, point: (f32, f32)) -> usize {
         }
     }
 
-    return rv;
+    rv
+}
+
+fn get_y_2(points: &[f32], point: (f32, f32)) -> (usize, usize) {
+    let mut min_dif = f32::MAX;
+    let mut min_dif2 = f32::MAX;
+
+    let mut rv = 0;
+    let mut rv2 = 0;
+    for (i, p) in points.iter().enumerate() {
+        let dif = abs_f32(point.1 - p);
+        if dif < min_dif {
+            min_dif = dif;
+            rv = i;
+        }
+    }
+
+    for (i, p) in points.iter().enumerate() {
+        let dif = abs_f32(point.1 - p);
+        if dif < min_dif2 && dif > min_dif {
+            min_dif2 = dif;
+            rv2 = i;
+        }
+    }
+
+    (rv, rv2)
 }
 
 fn make_matrix(arr_count: usize, arr_length: usize) -> Vec<Vec<(u8, bool)>> {
-    let mut outer = Vec::with_capacity(arr_count);
-    for _ in 0..arr_count {
-        let mut inner = Vec::with_capacity(arr_length);
-        for _ in 0..arr_length {
-            inner.push((0, false));
-        }
-        outer.push(inner);
-    }
-    outer
+    (0..arr_count)
+        .map(|_| (0..arr_length).map(|_| (0, false)).collect())
+        .collect()
 }
