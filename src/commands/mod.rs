@@ -9,6 +9,11 @@ use crate::{
     repl::{PreviousAnswer, Repl},
 };
 
+#[derive(Debug)]
+struct BC {
+    pattern: Vec<u8>,
+}
+
 pub(crate) fn run_command(line: &str, repl: &mut Repl) {
     match line {
         "p" | "plot" => p(),
@@ -68,38 +73,24 @@ fn p() {
 
     let step_size = (x_max - x_min) / WIDTH as f32;
 
-    let mut y_min = f32::MAX;
-    let mut y_max = f32::MIN;
-
     let points = plot(eq.trim(), x_min, x_max, step_size);
 
     let mut matrix = make_matrix(HEIGHT + 1, WIDTH + 1);
 
     if let Ok(points) = points {
-        for point in &points {
-            if point.1 < y_min {
-                y_min = point.1;
-            } else if point.1 > y_max {
-                y_max = point.1;
-            }
-        }
+        let (y_min, y_max) = get_y_min_max(&points);
 
         let y_range = y_max - y_min;
 
         let y_step = y_range / HEIGHT as f32;
 
-        let mut y_values = Vec::with_capacity(60);
+        let y_values: Vec<_> = (0..=HEIGHT).map(|n| y_min + (y_step * n as f32)).collect();
 
-        for n in 0..=HEIGHT {
-            let value = y_min + (y_step * n as f32);
-            y_values.push(value);
-        }
-        let mut new_points = vec![];
-        for (i, point) in points.iter().enumerate() {
-            let x = i;
-            let y = get_y_2(&y_values, *point);
-            new_points.push((x, y));
-        }
+        let new_points = points
+            .iter()
+            .enumerate()
+            .map(|(i, point)| (i, get_y_values(&y_values, *point)))
+            .collect::<Vec<_>>();
 
         for p in new_points {
             matrix[p.1 .0][p.0].0 = 1;
@@ -107,10 +98,6 @@ fn p() {
         }
         matrix.reverse();
 
-        #[derive(Debug)]
-        struct BC {
-            pattern: Vec<u8>,
-        }
         let mut chars = Vec::with_capacity(HEIGHT / 4);
         for _ in 0..(HEIGHT / 4) {
             chars.push(Vec::with_capacity(WIDTH / 2));
@@ -148,11 +135,8 @@ fn p() {
                         .map(|b| b.to_string())
                         .collect::<String>();
                     let decimal_number = u8::from_str_radix(&binary_string, 2).unwrap();
-                    let hex_string = format!("{:02x}", decimal_number);
-
-                    let braille_char = String::from("28") + &hex_string;
-
-                    let code_point = u32::from_str_radix(&braille_char, 16).unwrap();
+                    let code_point =
+                        u32::from_str_radix(&format!("28{:02x}", decimal_number), 16).unwrap();
                     let character = std::char::from_u32(code_point).unwrap();
 
                     chars[i / 4].push(character);
@@ -160,7 +144,7 @@ fn p() {
             }
         }
 
-        println!("---------------------------------------------------------------");
+        println!("{}", "-".repeat(65));
         for (i, row) in chars.iter().enumerate() {
             let mut s = String::new();
             s.push('|');
@@ -177,32 +161,28 @@ fn p() {
             }
             println!("{}", s);
         }
-        println!("---------------------------------------------------------------");
-        println!(
-            "{}                                                             {}",
-            x_min, x_max
-        );
+        println!("{}", "-".repeat(65));
+        println!("{}{}{}", x_min, " ".repeat(61), x_max);
     } else {
         eprintln!("{}", points.unwrap_err());
     }
 }
 
-fn _get_y(points: &[f32], point: (f32, f32)) -> usize {
-    let mut min_dif = f32::MAX;
+fn get_y_min_max(points: &[(f32, f32)]) -> (f32, f32) {
+    let mut y_min = f32::MAX;
+    let mut y_max = f32::MIN;
 
-    let mut rv = 0;
-    for (i, p) in points.iter().enumerate() {
-        let dif = abs_f32(point.1 - p);
-        if dif < min_dif {
-            min_dif = dif;
-            rv = i;
+    for point in points {
+        if point.1 < y_min {
+            y_min = point.1;
+        } else if point.1 > y_max {
+            y_max = point.1;
         }
     }
-
-    rv
+    (y_min, y_max)
 }
 
-fn get_y_2(points: &[f32], point: (f32, f32)) -> (usize, usize) {
+fn get_y_values(points: &[f32], point: (f32, f32)) -> (usize, usize) {
     let mut min_dif = f32::MAX;
     let mut min_dif2 = f32::MAX;
 
