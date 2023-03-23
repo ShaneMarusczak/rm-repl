@@ -7,6 +7,7 @@ use rusty_maths::{
 use crate::{
     inputs::{get_matrix_input, get_numerical_input, get_textual_input},
     repl::{PreviousAnswer, Repl},
+    variables::insert_ans_vars,
 };
 
 #[derive(Debug)]
@@ -16,7 +17,7 @@ struct BC {
 
 pub(crate) fn run_command(line: &str, repl: &mut Repl) {
     match line {
-        "p" | "plot" => p(),
+        "p" | "plot" => p(repl),
         "la" | "linear algebra" => la(),
         "h" | "help" => h(),
         _ => {
@@ -44,7 +45,7 @@ fn la() {
     loop {
         let op_code = get_textual_input("operation: ");
 
-        match op_code.trim() {
+        match op_code.as_str() {
             "vs" | "vector sum" => {
                 let m = get_matrix_input();
                 let sum = vector_sum(&m);
@@ -61,11 +62,11 @@ fn la() {
     }
 }
 
-fn p() {
+fn p(repl: &mut Repl) {
     const WIDTH: usize = 120;
     const HEIGHT: usize = 60;
 
-    let eq: String = get_textual_input("equation: ");
+    let eq = insert_ans_vars(&get_textual_input("equation: "), repl);
 
     let x_min = get_numerical_input("x min: ");
 
@@ -73,7 +74,7 @@ fn p() {
 
     let step_size = (x_max - x_min) / WIDTH as f32;
 
-    let points = plot(eq.trim(), x_min, x_max, step_size);
+    let points = plot(&eq, x_min, x_max, step_size);
 
     let mut matrix = make_matrix(HEIGHT + 1, WIDTH + 1);
 
@@ -102,31 +103,31 @@ fn p() {
         for _ in 0..(HEIGHT / 4) {
             chars.push(Vec::with_capacity(WIDTH / 2));
         }
-        for i in 0..matrix.len() {
-            for j in 0..matrix[i].len() {
-                let cell = matrix[i][j];
+        for row in 0..matrix.len() {
+            for col in 0..matrix[row].len() {
+                let cell = matrix[row][col];
                 if cell.1 {
                     continue;
                 }
                 let mut char = BC { pattern: vec![] };
-                for x in 0..=1 {
-                    for y in 0..=2 {
-                        if i + y < matrix.len() && j + x < matrix[i].len() {
-                            let val = matrix[i + y][j + x];
+                for dx in 0..=1 {
+                    for dy in 0..=2 {
+                        if row + dy < matrix.len() && col + dx < matrix[row].len() {
+                            let val = matrix[row + dy][col + dx];
                             char.pattern.push(val.0);
-                            matrix[i + y][j + x].1 = true;
+                            matrix[row + dy][col + dx].1 = true;
                         }
                     }
                 }
-                for x in 0..=1 {
-                    let y = 3;
-                    if i + y < matrix.len() && j + x < matrix[i].len() {
-                        let val = matrix[i + y][j + x];
+                for dx in 0..=1 {
+                    let dy = 3;
+                    if row + dy < matrix.len() && col + dx < matrix[row].len() {
+                        let val = matrix[row + dy][col + dx];
                         char.pattern.push(val.0);
-                        matrix[i + y][j + x].1 = true;
+                        matrix[row + dy][col + dx].1 = true;
                     }
                 }
-                if (i / 4) < chars.len() {
+                if (row / 4) < chars.len() {
                     char.pattern.reverse();
 
                     let binary_string = char
@@ -139,7 +140,7 @@ fn p() {
                         u32::from_str_radix(&format!("28{:02x}", decimal_number), 16).unwrap();
                     let character = std::char::from_u32(code_point).unwrap();
 
-                    chars[i / 4].push(character);
+                    chars[row / 4].push(character);
                 }
             }
         }

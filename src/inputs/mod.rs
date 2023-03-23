@@ -25,7 +25,7 @@ where
     loop {
         let s = get_textual_input(msg);
 
-        if let Ok(x) = s.trim().parse::<T>() {
+        if let Ok(x) = s.parse::<T>() {
             return x;
         } else {
             continue;
@@ -37,7 +37,7 @@ pub(crate) fn get_textual_input(msg: &str) -> String {
     let mut rl = rustyline::Editor::<()>::new().unwrap();
     let readline = rl.readline(msg);
     match readline {
-        Ok(line) => line,
+        Ok(line) => line.trim().to_string(),
         Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => exit(0),
         Err(err) => {
             eprintln!("Error: {:?}", err);
