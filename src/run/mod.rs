@@ -17,3 +17,12 @@ pub(crate) fn run(line: &str, repl: &mut Repl) {
         eprintln!("{}", val.unwrap_err().to_lowercase());
     }
 }
+
+pub(crate) fn simple_run(line: &str) {
+    let val = calculate(line);
+    if let Ok(v) = val {
+        println!("{}", v);
+    } else {
+        eprintln!("{}", val.unwrap_err().to_lowercase());
+    }
+}

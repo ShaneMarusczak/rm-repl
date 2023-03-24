@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::run::simple_run;
+
 mod commands;
 mod inputs;
 mod repl;
@@ -7,6 +9,20 @@ mod run;
 mod variables;
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+
+    match args.len() {
+        1 => as_repl(),
+        2 => as_command_tool(&args[1]),
+        _ => eprintln!("invalid use of {}", args[0]),
+    }
+}
+
+fn as_command_tool(line: &str) {
+    simple_run(line);
+}
+
+fn as_repl() {
     println!("\n--rusty maths repl--\n");
 
     let mut repl = repl::Repl {

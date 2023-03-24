@@ -72,6 +72,12 @@ fn p(repl: &mut Repl) {
 
     let x_max = get_numerical_input("x max: ");
 
+    let y_axis_in_view = x_min < 0_f32 && x_max > 0_f32;
+
+    let y_axis_ratio: f32 = abs_f32(x_min) / (x_max - x_min);
+
+    let y_axis_col = (y_axis_ratio * WIDTH as f32).round() as usize;
+
     let step_size = (x_max - x_min) / WIDTH as f32;
 
     let points = plot(&eq, x_min, x_max, step_size);
@@ -80,6 +86,12 @@ fn p(repl: &mut Repl) {
 
     if let Ok(points) = points {
         let (y_min, y_max) = get_y_min_max(&points);
+
+        let x_axis_in_view = y_min < 0_f32 && y_max > 0_f32;
+
+        let x_axis_ratio = abs_f32(y_min) / (y_max - y_min);
+
+        let x_axis_row = (x_axis_ratio * HEIGHT as f32).round() as usize;
 
         let y_range = y_max - y_min;
 
@@ -93,11 +105,29 @@ fn p(repl: &mut Repl) {
             .map(|(i, point)| (i, get_y_values(&y_values, *point)))
             .collect::<Vec<_>>();
 
+        //go back to just a single y and
+        //fill in gaps in matrix with shortest path algorithm from maze solver
+
         for p in new_points {
             matrix[p.1 .0][p.0].0 = 1;
             matrix[p.1 .1][p.0].0 = 1;
         }
+        if x_axis_in_view {
+            for (i, row) in matrix.iter_mut().enumerate() {
+                if i == x_axis_row {
+                    for c in row.iter_mut() {
+                        c.0 = 1;
+                    }
+                }
+            }
+        }
         matrix.reverse();
+
+        if y_axis_in_view {
+            for row in 0..matrix.len() {
+                matrix[row][y_axis_col].0 = 1;
+            }
+        }
 
         let mut chars = Vec::with_capacity(HEIGHT / 4);
         for _ in 0..(HEIGHT / 4) {
