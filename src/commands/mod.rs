@@ -10,7 +10,6 @@ use crate::{
     variables::insert_ans_vars,
 };
 
-#[derive(Debug)]
 struct BC {
     pattern: Vec<u8>,
 }
@@ -72,15 +71,15 @@ fn p(repl: &mut Repl) {
 
     let x_max = get_numerical_input("x max: ");
 
+    let step_size = (x_max - x_min) / WIDTH as f32;
+
+    let points = plot(&eq, x_min, x_max, step_size);
+
     let y_axis_in_view = x_min < 0_f32 && x_max > 0_f32;
 
     let y_axis_ratio: f32 = abs_f32(x_min) / (x_max - x_min);
 
     let y_axis_col = (y_axis_ratio * WIDTH as f32).round() as usize;
-
-    let step_size = (x_max - x_min) / WIDTH as f32;
-
-    let points = plot(&eq, x_min, x_max, step_size);
 
     let mut matrix = make_matrix(HEIGHT + 1, WIDTH + 1);
 
@@ -97,7 +96,7 @@ fn p(repl: &mut Repl) {
 
         let y_step = y_range / HEIGHT as f32;
 
-        let y_values: Vec<_> = (0..=HEIGHT).map(|n| y_min + (y_step * n as f32)).collect();
+        let y_values: Vec<f32> = (0..=HEIGHT).map(|n| y_min + (y_step * n as f32)).collect();
 
         let new_points = points
             .iter()
@@ -112,20 +111,20 @@ fn p(repl: &mut Repl) {
             matrix[p.1 .0][p.0].0 = 1;
             matrix[p.1 .1][p.0].0 = 1;
         }
+
         if x_axis_in_view {
-            for (i, row) in matrix.iter_mut().enumerate() {
-                if i == x_axis_row {
-                    for c in row.iter_mut() {
-                        c.0 = 1;
-                    }
+            if let Some(row) = matrix.get_mut(x_axis_row) {
+                for c in row.iter_mut() {
+                    c.0 = 1;
                 }
             }
         }
+
         matrix.reverse();
 
         if y_axis_in_view {
-            for row in 0..matrix.len() {
-                matrix[row][y_axis_col].0 = 1;
+            for row in &mut matrix {
+                row[y_axis_col].0 = 1;
             }
         }
 
@@ -175,15 +174,13 @@ fn p(repl: &mut Repl) {
             }
         }
 
-        println!("{}", "-".repeat(65));
+        println!("{}", "-".repeat(63));
         for (i, row) in chars.iter().enumerate() {
             let mut s = String::new();
             s.push('|');
-            s.push(' ');
             for cell in row {
                 s.push(*cell);
             }
-            s.push(' ');
             s.push('|');
             if i == 0 {
                 s = s + &format!("{}", y_max);
@@ -192,8 +189,8 @@ fn p(repl: &mut Repl) {
             }
             println!("{}", s);
         }
-        println!("{}", "-".repeat(65));
-        println!("{}{}{}", x_min, " ".repeat(61), x_max);
+        println!("{}", "-".repeat(63));
+        println!("{}{}{}", x_min, " ".repeat(60), x_max);
     } else {
         eprintln!("{}", points.unwrap_err());
     }
