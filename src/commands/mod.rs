@@ -9,10 +9,6 @@ use crate::{
     repl::{PreviousAnswer, Repl},
 };
 
-struct BC {
-    pattern: Vec<u8>,
-}
-
 pub(crate) fn run_command(line: &str, repl: &mut Repl) {
     match line {
         "p" | "plot" => p(),
@@ -135,12 +131,12 @@ fn p() {
                 if cell.1 {
                     continue;
                 }
-                let mut char = BC { pattern: vec![] };
+                let mut char = vec![];
                 for dx in 0..=1 {
                     for dy in 0..=2 {
                         if row + dy < matrix.len() && col + dx < matrix[row].len() {
                             let val = matrix[row + dy][col + dx];
-                            char.pattern.push(val.0);
+                            char.push(val.0);
                             matrix[row + dy][col + dx].1 = true;
                         }
                     }
@@ -149,18 +145,14 @@ fn p() {
                     let dy = 3;
                     if row + dy < matrix.len() && col + dx < matrix[row].len() {
                         let val = matrix[row + dy][col + dx];
-                        char.pattern.push(val.0);
+                        char.push(val.0);
                         matrix[row + dy][col + dx].1 = true;
                     }
                 }
                 if (row / 4) < chars.len() {
-                    char.pattern.reverse();
+                    char.reverse();
 
-                    let binary_string = char
-                        .pattern
-                        .iter()
-                        .map(|b| b.to_string())
-                        .collect::<String>();
+                    let binary_string = char.iter().map(|b| b.to_string()).collect::<String>();
                     let decimal_number = u8::from_str_radix(&binary_string, 2).unwrap();
                     let code_point =
                         u32::from_str_radix(&format!("28{:02x}", decimal_number), 16).unwrap();
