@@ -7,7 +7,6 @@ use rusty_maths::{
 use crate::{
     inputs::{get_matrix_input, get_numerical_input, get_textual_input},
     repl::{PreviousAnswer, Repl},
-    variables::insert_ans_vars,
 };
 
 struct BC {
@@ -16,7 +15,7 @@ struct BC {
 
 pub(crate) fn run_command(line: &str, repl: &mut Repl) {
     match line {
-        "p" | "plot" => p(repl),
+        "p" | "plot" => p(),
         "la" | "linear algebra" => la(),
         "h" | "help" => h(),
         _ => {
@@ -61,17 +60,19 @@ fn la() {
     }
 }
 
-fn p(repl: &mut Repl) {
+fn p() {
     const WIDTH: usize = 120;
     const HEIGHT: usize = 60;
 
-    let eq = insert_ans_vars(&get_textual_input("equation: "), repl);
+    let eq = &get_textual_input("equation: ");
 
     let x_min = get_numerical_input("x min: ");
 
     let x_max = get_numerical_input("x max: ");
 
-    let step_size = (x_max - x_min) / WIDTH as f32;
+    let multiplier: f32 = get_numerical_input("sampling factor: ");
+
+    let step_size = (x_max - x_min) / ((WIDTH as f32) * multiplier);
 
     let points = plot(&eq, x_min, x_max, step_size);
 
@@ -101,15 +102,11 @@ fn p(repl: &mut Repl) {
         let new_points = points
             .iter()
             .enumerate()
-            .map(|(i, point)| (i, get_y_values(&y_values, *point)))
+            .map(|(i, point)| (i / multiplier as usize, get_y_value(&y_values, *point)))
             .collect::<Vec<_>>();
 
-        //go back to just a single y and
-        //fill in gaps in matrix with shortest path algorithm from maze solver
-
         for p in new_points {
-            matrix[p.1 .0][p.0].0 = 1;
-            matrix[p.1 .1][p.0].0 = 1;
+            matrix[p.1][p.0].0 = 1;
         }
 
         if x_axis_in_view {
@@ -210,12 +207,10 @@ fn get_y_min_max(points: &[(f32, f32)]) -> (f32, f32) {
     (y_min, y_max)
 }
 
-fn get_y_values(points: &[f32], point: (f32, f32)) -> (usize, usize) {
+fn get_y_value(points: &[f32], point: (f32, f32)) -> usize {
     let mut min_dif = f32::MAX;
-    let mut min_dif2 = f32::MAX;
 
     let mut rv = 0;
-    let mut rv2 = 0;
     for (i, p) in points.iter().enumerate() {
         let dif = abs_f32(point.1 - p);
         if dif < min_dif {
@@ -223,16 +218,7 @@ fn get_y_values(points: &[f32], point: (f32, f32)) -> (usize, usize) {
             rv = i;
         }
     }
-
-    for (i, p) in points.iter().enumerate() {
-        let dif = abs_f32(point.1 - p);
-        if dif < min_dif2 && dif > min_dif {
-            min_dif2 = dif;
-            rv2 = i;
-        }
-    }
-
-    (rv, rv2)
+    rv
 }
 
 fn make_matrix(arr_count: usize, arr_length: usize) -> Vec<Vec<(u8, bool)>> {
