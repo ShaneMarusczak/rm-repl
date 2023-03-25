@@ -64,7 +64,7 @@ fn p() {
     const WIDTH: usize = 120;
     const HEIGHT: usize = 60;
 
-    let eq = &get_textual_input("equation: ");
+    let eq = get_textual_input("equation: ");
 
     let x_min = get_numerical_input("x min: ");
 
