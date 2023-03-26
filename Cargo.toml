@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
  rusty-maths = { git = "https://github.com/ShaneMarusczak/rusty-maths"}
  rustyline = "10.0.0"
+ serde = { version = "1.0", features = ["derive"] }
+ toml = "0.5"
