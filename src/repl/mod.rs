@@ -1,9 +1,18 @@
 use std::collections::HashMap;
 
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+pub(crate) struct RmrConfig {
+    pub(crate) y_min: f32,
+    pub(crate) y_max: f32,
+}
+
 pub(crate) struct Repl {
     pub(crate) previous_answer: f32,
     pub(crate) previous_answer_valid: bool,
     pub(crate) variables: HashMap<char, String>,
+    pub(crate) config: RmrConfig,
 }
 
 pub(crate) trait PreviousAnswer {

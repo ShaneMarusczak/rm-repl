@@ -11,7 +11,7 @@ use crate::{
 
 pub(crate) fn run_command(line: &str, repl: &mut Repl) {
     match line {
-        "p" | "plot" => p(),
+        "p" | "plot" => p(repl),
         "la" | "linear algebra" => la(),
         "h" | "help" => h(),
         _ => {
@@ -56,25 +56,25 @@ fn la() {
     }
 }
 
-fn p() {
-    const WIDTH: usize = 120;
-    const HEIGHT: usize = 60;
-
-    let config = load_config();
-
+fn p(repl: &mut Repl) {
     let eq = get_textual_input("equation: ");
 
     let x_min = get_numerical_input("x min: ");
 
     let x_max = get_numerical_input("x max: ");
 
-    let mut y_min = config.y_min;
+    let width: usize = 120;
+    let height: usize = 60;
 
-    let mut y_max = config.y_max;
+    let mut y_min = repl.config.y_min;
+
+    let mut y_max = repl.config.y_max;
 
     let multiplier = 5_f32;
 
-    let step_size = (x_max - x_min) / ((WIDTH as f32) * multiplier);
+    let x_range = x_max - x_min;
+
+    let step_size = x_range / ((width as f32) * multiplier);
 
     let points = plot(&eq, x_min, x_max, step_size);
 
@@ -82,9 +82,11 @@ fn p() {
 
     let y_axis_ratio: f32 = abs_f32(x_min) / (x_max - x_min);
 
-    let y_axis_col = (y_axis_ratio * WIDTH as f32).round() as usize;
+    let y_axis_col = (y_axis_ratio * width as f32).round() as usize;
 
-    let mut matrix = make_matrix(HEIGHT + 1, WIDTH + 1);
+    //can i tie in the matrix input here to make the window more flexible
+
+    let mut matrix = make_matrix(height + 1, width + 1);
 
     if let Ok(points) = points {
         let (y_min_actual, y_max_actual) = get_y_min_max(&points);
@@ -101,13 +103,13 @@ fn p() {
 
         let x_axis_ratio = abs_f32(y_min) / (y_max - y_min);
 
-        let x_axis_row = (x_axis_ratio * HEIGHT as f32).round() as usize;
+        let x_axis_row = (x_axis_ratio * height as f32).round() as usize;
 
         let y_range = y_max - y_min;
 
-        let y_step = y_range / HEIGHT as f32;
+        let y_step = y_range / height as f32;
 
-        let y_values: Vec<f32> = (0..=HEIGHT).map(|n| y_min + (y_step * n as f32)).collect();
+        let y_values: Vec<f32> = (0..=height).map(|n| y_min + (y_step * n as f32)).collect();
 
         let new_points = points
             .iter()
@@ -138,9 +140,9 @@ fn p() {
             }
         }
 
-        let mut chars = Vec::with_capacity(HEIGHT / 4);
-        for _ in 0..(HEIGHT / 4) {
-            chars.push(Vec::with_capacity(WIDTH / 2));
+        let mut chars = Vec::with_capacity(height / 4);
+        for _ in 0..(height / 4) {
+            chars.push(Vec::with_capacity(width / 2));
         }
         for row in 0..matrix.len() {
             for col in 0..matrix[row].len() {
@@ -234,28 +236,4 @@ fn make_matrix(arr_count: usize, arr_length: usize) -> Vec<Vec<(u8, bool)>> {
     (0..arr_count)
         .map(|_| (0..arr_length).map(|_| (0, false)).collect())
         .collect()
-}
-
-use serde::Deserialize;
-
-use std::fs::File;
-use std::io::Read;
-use std::path::Path;
-
-#[derive(Deserialize)]
-struct Config {
-    y_min: f32,
-    y_max: f32,
-}
-
-fn load_config() -> Config {
-    let path = Path::new("config.toml");
-    let display = path.display();
-    let mut file = match File::open(path) {
-        Ok(file) => file,
-        Err(msg) => panic!("couldn't open {}: {}", display, msg),
-    };
-    let mut file_content = String::new();
-    file.read_to_string(&mut file_content).unwrap();
-    toml::from_str(&file_content).unwrap()
 }
