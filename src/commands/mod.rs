@@ -57,6 +57,9 @@ fn la() {
 }
 
 fn p() {
+    const WIDTH: usize = 120;
+    const HEIGHT: usize = 60;
+
     let config = load_config();
 
     let eq = get_textual_input("equation: ");
@@ -65,13 +68,13 @@ fn p() {
 
     let x_max = get_numerical_input("x max: ");
 
-    let y_min: f32 = config.y_min;
+    let mut y_min = config.y_min;
 
-    let y_mas: f32 = config.y_max;
+    let mut y_max = config.y_max;
 
     let multiplier = 5_f32;
 
-    let step_size = (x_max - x_min) / ((config.width as f32) * multiplier);
+    let step_size = (x_max - x_min) / ((WIDTH as f32) * multiplier);
 
     let points = plot(&eq, x_min, x_max, step_size);
 
@@ -79,24 +82,32 @@ fn p() {
 
     let y_axis_ratio: f32 = abs_f32(x_min) / (x_max - x_min);
 
-    let y_axis_col = (y_axis_ratio * config.width as f32).round() as usize;
+    let y_axis_col = (y_axis_ratio * WIDTH as f32).round() as usize;
 
-    let mut matrix = make_matrix(config.height + 1, config.width + 1);
+    let mut matrix = make_matrix(HEIGHT + 1, WIDTH + 1);
 
     if let Ok(points) = points {
-        let x_axis_in_view = y_min < 0_f32 && y_mas > 0_f32;
+        let (y_min_actual, y_max_actual) = get_y_min_max(&points);
 
-        let x_axis_ratio = abs_f32(y_min) / (y_mas - y_min);
+        if y_min_actual > y_min {
+            y_min = y_min_actual;
+        }
 
-        let x_axis_row = (x_axis_ratio * config.height as f32).round() as usize;
+        if y_max_actual < y_max {
+            y_max = y_max_actual;
+        }
 
-        let y_range = y_mas - y_min;
+        let x_axis_in_view = y_min < 0_f32 && y_max > 0_f32;
 
-        let y_step = y_range / config.height as f32;
+        let x_axis_ratio = abs_f32(y_min) / (y_max - y_min);
 
-        let y_values: Vec<f32> = (0..=config.height)
-            .map(|n| y_min + (y_step * n as f32))
-            .collect();
+        let x_axis_row = (x_axis_ratio * HEIGHT as f32).round() as usize;
+
+        let y_range = y_max - y_min;
+
+        let y_step = y_range / HEIGHT as f32;
+
+        let y_values: Vec<f32> = (0..=HEIGHT).map(|n| y_min + (y_step * n as f32)).collect();
 
         let new_points = points
             .iter()
@@ -106,7 +117,7 @@ fn p() {
 
         for p in new_points
             .iter()
-            .filter(|p| p.1 .1 < y_mas && p.1 .1 > y_min)
+            .filter(|p| p.1 .1 < y_max && p.1 .1 > y_min)
         {
             matrix[p.1 .0][p.0].0 = 1;
         }
@@ -127,9 +138,9 @@ fn p() {
             }
         }
 
-        let mut chars = Vec::with_capacity(config.height / 4);
-        for _ in 0..(config.height / 4) {
-            chars.push(Vec::with_capacity(config.width / 2));
+        let mut chars = Vec::with_capacity(HEIGHT / 4);
+        for _ in 0..(HEIGHT / 4) {
+            chars.push(Vec::with_capacity(WIDTH / 2));
         }
         for row in 0..matrix.len() {
             for col in 0..matrix[row].len() {
@@ -178,7 +189,7 @@ fn p() {
             }
             s.push('|');
             if i == 0 {
-                s = s + &format!("{}", y_mas);
+                s = s + &format!("{}", y_max);
             } else if i == chars.len() - 1 {
                 s = s + &format!("{}", y_min);
             }
@@ -235,17 +246,14 @@ use std::path::Path;
 struct Config {
     y_min: f32,
     y_max: f32,
-    width: usize,
-    height: usize,
 }
 
 fn load_config() -> Config {
-    let path_name = format!("config.toml");
-    let path = Path::new(&path_name);
+    let path = Path::new("config.toml");
     let display = path.display();
-    let mut file = match File::open(&path) {
+    let mut file = match File::open(path) {
         Ok(file) => file,
-        Err(why) => panic!("couldn't open {}: {}", display, why),
+        Err(msg) => panic!("couldn't open {}: {}", display, msg),
     };
     let mut file_content = String::new();
     file.read_to_string(&mut file_content).unwrap();
