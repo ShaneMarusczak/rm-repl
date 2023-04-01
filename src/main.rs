@@ -54,6 +54,7 @@ fn as_repl() {
 }
 
 fn load_config() -> repl::RmrConfig {
-    let file_content = std::fs::read_to_string("config.toml").unwrap();
+    let file_content =
+        std::fs::read_to_string("/Users/shane/code/rust/rm-repl/config.toml").unwrap();
     toml::from_str(&file_content).unwrap()
 }

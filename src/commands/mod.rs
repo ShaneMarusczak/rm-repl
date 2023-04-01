@@ -56,6 +56,9 @@ fn la() {
     }
 }
 
+//refactor this out to its own module
+//build integration like what the ti-84 does
+
 fn p(repl: &mut Repl) {
     let eq = get_textual_input("equation: ");
 
@@ -70,7 +73,7 @@ fn p(repl: &mut Repl) {
 
     let mut y_max = repl.config.y_max;
 
-    let multiplier = 5_f32;
+    let multiplier = 10_f32;
 
     let x_range = x_max - x_min;
 
@@ -83,8 +86,6 @@ fn p(repl: &mut Repl) {
     let y_axis_ratio: f32 = abs_f32(x_min) / (x_max - x_min);
 
     let y_axis_col = (y_axis_ratio * width as f32).round() as usize;
-
-    //can i tie in the matrix input here to make the window more flexible
 
     let mut matrix = make_matrix(height + 1, width + 1);
 
