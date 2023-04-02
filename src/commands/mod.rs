@@ -92,13 +92,8 @@ fn p(repl: &mut Repl) {
     if let Ok(points) = points {
         let (y_min_actual, y_max_actual) = get_y_min_max(&points);
 
-        if y_min_actual > y_min {
-            y_min = y_min_actual;
-        }
-
-        if y_max_actual < y_max {
-            y_max = y_max_actual;
-        }
+        y_min = y_min.max(y_min_actual);
+        y_max = y_max.min(y_max_actual);
 
         let x_axis_in_view = y_min < 0_f32 && y_max > 0_f32;
 
