@@ -6,6 +6,8 @@ use serde::Deserialize;
 pub(crate) struct RmrConfig {
     pub(crate) y_min: f32,
     pub(crate) y_max: f32,
+    pub(crate) height: usize,
+    pub(crate) width: usize,
 }
 
 pub(crate) struct Repl {

@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use crate::run::simple_run;
-
 mod commands;
 mod inputs;
 mod repl;
@@ -19,7 +17,7 @@ fn main() {
 }
 
 fn as_command_tool(line: &str) {
-    simple_run(line);
+    run::simple_run(line);
 }
 
 fn as_repl() {
@@ -40,7 +38,7 @@ fn as_repl() {
         } else if let Some(stripped) = line.strip_prefix(':') {
             match stripped {
                 "q" | "quit" => break,
-                _ => commands::run_command(stripped, &mut repl),
+                _ => commands::run_commands::run_command(stripped, &mut repl),
             }
         } else if !repl.previous_answer_valid && line.contains("ans") {
             eprintln!("invalid use of 'ans'");
