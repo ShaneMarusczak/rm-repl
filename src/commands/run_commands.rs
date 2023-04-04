@@ -14,15 +14,7 @@ pub(crate) fn run_command(line: &str, repl: &mut Repl) {
     match line {
         "p" | "plot" => {
             let (eq, x_min, x_max) = get_p_inputs();
-            let g = p(
-                eq,
-                x_min,
-                x_max,
-                repl.config.y_min,
-                repl.config.y_max,
-                repl.config.width,
-                repl.config.height,
-            );
+            let g = p(eq, x_min, x_max, -7_f32, 7_f32, 240, 120);
             println!("{}", g);
         }
         "la" | "linear algebra" => la(),

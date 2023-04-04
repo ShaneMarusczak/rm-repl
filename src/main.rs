@@ -27,7 +27,6 @@ fn as_repl() {
         previous_answer: 0.0,
         previous_answer_valid: false,
         variables: HashMap::new(),
-        config: load_config(),
     };
 
     loop {
@@ -49,10 +48,4 @@ fn as_repl() {
             run::run(&line, &mut repl);
         }
     }
-}
-
-fn load_config() -> repl::RmrConfig {
-    let file_content =
-        std::fs::read_to_string("/Users/shane/code/rust/rm-repl/config.toml").unwrap();
-    toml::from_str(&file_content).unwrap()
 }
