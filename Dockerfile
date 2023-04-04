@@ -20,7 +20,7 @@ RUN touch /usr/src/rmr/src/main.rs
 
 RUN cargo build --target aarch64-unknown-linux-musl --release
 
-FROM shinsenter/scratch as runtime
+FROM scratch as runtime
 
 COPY --from=builder /usr/src/rmr/target/aarch64-unknown-linux-musl/release/rmr /
 
