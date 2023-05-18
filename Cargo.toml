@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ crossterm = "0.26.1"
  num_cpus = "1.15.0"
  rusty-maths = { git = "https://github.com/ShaneMarusczak/rusty-maths" }
  rustyline = "10.0.0"
