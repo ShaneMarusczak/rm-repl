@@ -12,6 +12,8 @@ pub(crate) fn get_p_inputs() -> (String, f32, f32) {
     (eq, x_min, x_max)
 }
 
+///converts points to location on screen
+///-10..10 and -100..100 both need to fit on the same amount of screen real estate
 fn get_normalized_points(
     height: usize,
     y_min: f32,
@@ -33,7 +35,7 @@ fn get_normalized_points(
 
     let mut threads = Vec::with_capacity(num_threads);
 
-    let points_chunks: Vec<Vec<_>> = points.chunks(chunk_size).map(|s| s.into()).collect();
+    let points_chunks: Vec<Vec<(f32, f32)>> = points.chunks(chunk_size).map(|s| s.into()).collect();
 
     for (c, chunk) in points_chunks.into_iter().enumerate() {
         let y_values = Arc::clone(&y_values);
@@ -56,6 +58,7 @@ fn get_normalized_points(
     normalized_points
 }
 
+///snaps to match min and max from data
 pub(crate) fn w_auto(eq: &str, x_min: f32, x_max: f32, width: usize, height: usize) -> String {
     let multiplier = (width / 8) as f32;
 
@@ -146,6 +149,7 @@ pub(crate) fn w(
     }
 }
 
+///adds frame and x y mins and maxes
 fn get_graph_string(
     chars: Vec<Vec<char>>,
     x_min: f32,
@@ -177,6 +181,8 @@ fn get_graph_string(
     s
 }
 
+///converts a matrix of 1s and 0s to a matrix of braille with dots at the 1s and blanks at the 0s
+///https://en.wikipedia.org/wiki/Braille_Patterns
 fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<(u8, bool)>>) -> Vec<Vec<char>> {
     let mut chars = Vec::with_capacity(height / 4);
     for _ in 0..(height / 4) {
@@ -185,10 +191,13 @@ fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<(u8, bool)>>) -
     for row in 0..matrix.len() {
         for col in 0..matrix[row].len() {
             let cell = matrix[row][col];
+            //if this cell has already been accounted for in a previous char, braille chars are 2 collumns
             if cell.1 {
                 continue;
             }
+            //represents a single braile char
             let mut char = vec![];
+            //1-6 braille dots
             for dx in 0..=1 {
                 for dy in 0..=2 {
                     if row + dy < matrix.len() && col + dx < matrix[row].len() {
@@ -198,6 +207,7 @@ fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<(u8, bool)>>) -
                     }
                 }
             }
+            //7-8 braille dots
             for dx in 0..=1 {
                 let dy = 3;
                 if row + dy < matrix.len() && col + dx < matrix[row].len() {
@@ -209,12 +219,14 @@ fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<(u8, bool)>>) -
             if (row / 4) < chars.len() {
                 char.reverse();
 
+                //converts array of 0 and 1 to braille char
                 let binary_string = char.iter().map(|b| b.to_string()).collect::<String>();
                 let decimal_number = u8::from_str_radix(&binary_string, 2).unwrap();
                 let code_point =
                     u32::from_str_radix(&format!("28{:02x}", decimal_number), 16).unwrap();
-                let character = std::char::from_u32(code_point).unwrap();
+                let character = char::from_u32(code_point).unwrap();
 
+                //each braile char is actually 4 rows
                 chars[row / 4].push(character);
             }
         }
