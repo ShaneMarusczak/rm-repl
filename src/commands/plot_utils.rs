@@ -59,43 +59,45 @@ fn get_normalized_points(
 }
 
 ///snaps to match min and max from data
-pub(crate) fn w_auto(eq: &str, x_min: f32, x_max: f32, width: usize, height: usize) -> String {
+pub(crate) fn w_auto(
+    eq: &str,
+    x_min: f32,
+    x_max: f32,
+    width: usize,
+    height: usize,
+) -> Result<String, String> {
     let multiplier = (width / 8) as f32;
 
     let x_step = (x_max - x_min) / ((width as f32) * multiplier);
 
     //multithreaded
-    let points = plot(eq, x_min, x_max, x_step);
+    let points = plot(eq, x_min, x_max, x_step)?;
 
-    if let Ok(points) = points {
-        let mut matrix = make_matrix(height + 1, width + 1);
+    let mut matrix = make_matrix(height + 1, width + 1);
 
-        let mut y_min = get_y_min(&points);
-        let mut y_max = get_y_max(&points);
+    let mut y_min = get_y_min(&points);
+    let mut y_max = get_y_max(&points);
 
-        y_max += 0.5;
-        y_min -= 0.5;
+    y_max += 0.5;
+    y_min -= 0.5;
 
-        //multithreaded
-        for p in get_normalized_points(height, y_min, y_max, &points, multiplier)
-            .iter()
-            .filter(|p| p.1 .1 < y_max && p.1 .1 > y_min)
-        {
-            matrix[p.1 .0][p.0].0 = 1;
-        }
-
-        check_add_x_axis(y_min, y_max, height, &mut matrix);
-
-        matrix.reverse();
-
-        check_add_y_axis(x_min, x_max, width, &mut matrix);
-
-        let braille_chars = get_braille(height, width, &mut matrix);
-
-        get_graph_string(braille_chars, x_min, x_max, y_min, y_max)
-    } else {
-        points.unwrap_err()
+    //multithreaded
+    for p in get_normalized_points(height, y_min, y_max, &points, multiplier)
+        .iter()
+        .filter(|p| p.1 .1 < y_max && p.1 .1 > y_min)
+    {
+        matrix[p.1 .0][p.0].0 = 1;
     }
+
+    check_add_x_axis(y_min, y_max, height, &mut matrix);
+
+    matrix.reverse();
+
+    check_add_y_axis(x_min, x_max, width, &mut matrix);
+
+    let braille_chars = get_braille(height, width, &mut matrix);
+
+    Ok(get_graph_string(braille_chars, x_min, x_max, y_min, y_max))
 }
 
 pub(crate) fn w(
@@ -106,7 +108,7 @@ pub(crate) fn w(
     y_max: f32,
     width: usize,
     height: usize,
-) -> String {
+) -> Result<String, String> {
     let mut y_min = y_min;
     let mut y_max = y_max;
     let multiplier = (width / 8) as f32;
@@ -114,39 +116,35 @@ pub(crate) fn w(
     let x_step = (x_max - x_min) / ((width as f32) * multiplier);
 
     //multithreaded
-    let points = plot(eq, x_min, x_max, x_step);
+    let points = plot(eq, x_min, x_max, x_step)?;
 
-    if let Ok(points) = points {
-        let mut matrix = make_matrix(height + 1, width + 1);
+    let mut matrix = make_matrix(height + 1, width + 1);
 
-        let y_min_actual = get_y_min(&points);
-        let y_max_actual = get_y_max(&points);
+    let y_min_actual = get_y_min(&points);
+    let y_max_actual = get_y_max(&points);
 
-        y_max = y_max.min(y_max_actual);
-        y_min = y_min.max(y_min_actual);
-        y_max += 0.5;
-        y_min -= 0.5;
+    y_max = y_max.min(y_max_actual);
+    y_min = y_min.max(y_min_actual);
+    y_max += 0.5;
+    y_min -= 0.5;
 
-        //multithreaded
-        for p in get_normalized_points(height, y_min, y_max, &points, multiplier)
-            .iter()
-            .filter(|p| p.1 .1 < y_max && p.1 .1 > y_min)
-        {
-            matrix[p.1 .0][p.0].0 = 1;
-        }
-
-        check_add_x_axis(y_min, y_max, height, &mut matrix);
-
-        matrix.reverse();
-
-        check_add_y_axis(x_min, x_max, width, &mut matrix);
-
-        let braille_chars = get_braille(height, width, &mut matrix);
-
-        get_graph_string(braille_chars, x_min, x_max, y_min, y_max)
-    } else {
-        points.unwrap_err()
+    //multithreaded
+    for p in get_normalized_points(height, y_min, y_max, &points, multiplier)
+        .iter()
+        .filter(|p| p.1 .1 < y_max && p.1 .1 > y_min)
+    {
+        matrix[p.1 .0][p.0].0 = 1;
     }
+
+    check_add_x_axis(y_min, y_max, height, &mut matrix);
+
+    matrix.reverse();
+
+    check_add_y_axis(x_min, x_max, width, &mut matrix);
+
+    let braille_chars = get_braille(height, width, &mut matrix);
+
+    Ok(get_graph_string(braille_chars, x_min, x_max, y_min, y_max))
 }
 
 ///adds frame and x y mins and maxes
