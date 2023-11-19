@@ -15,6 +15,11 @@ use std::io::Write;
 
 use super::plot_utils::*;
 
+const Y_MIN: f32 = -7_f32;
+const Y_MAX: f32 = 7_f32;
+const HEIGHT: usize = 120;
+const WIDTH: usize = 240;
+
 pub(crate) fn run_command(line: &str, repl: &mut Repl) {
     match line {
         "t" | "table" => t(),
@@ -30,7 +35,7 @@ pub(crate) fn run_command(line: &str, repl: &mut Repl) {
 }
 
 fn t() {
-    let (eq, x_min, x_max) = get_p_inputs();
+    let (eq, x_min, x_max) = get_g_inputs();
     let step_size = get_numerical_input("step size: ");
 
     let points = plot(&eq, x_min, x_max, step_size);
@@ -45,10 +50,10 @@ fn t() {
         );
 
         for point in points {
-            let y = (point.1 * 100.0).round() / 100.0;
+            let y = (point.y * 100.0).round() / 100.0;
             println!(
                 "|{}{:<4} | {:<6}{}|",
-                underline_start, point.0, y, underline_end
+                underline_start, point.x, y, underline_end
             );
         }
     } else {
@@ -57,8 +62,8 @@ fn t() {
 }
 
 fn g() {
-    let (eq, x_min, x_max) = get_p_inputs();
-    let g = w(&eq, x_min, x_max, -7_f32, 7_f32, 240, 120);
+    let (eq, x_min, x_max) = get_g_inputs();
+    let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT);
     if let Ok(g) = g {
         println!("{}", g);
     } else {
@@ -68,8 +73,8 @@ fn g() {
 
 fn ag() {
     let mut stdout = std::io::stdout();
-    let (eq, x_min, x_max) = get_p_inputs();
-    let g = w_auto(&eq, x_min, x_max, 240, 120);
+    let (eq, x_min, x_max) = get_g_inputs();
+    let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT);
 
     if let Ok(g) = g {
         writeln!(stdout, "{}", g).unwrap();
@@ -81,7 +86,17 @@ fn ag() {
             stdout
                 .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                 .unwrap();
-            let g = w_auto(&eq, x_min - n as f32, x_max + n as f32, 240, 120).unwrap();
+            let g = graph(
+                &eq,
+                x_min - n as f32,
+                x_max + n as f32,
+                Y_MIN,
+                Y_MAX,
+                WIDTH,
+                HEIGHT,
+            )
+            .unwrap();
+
             writeln!(stdout, "{}", g).unwrap();
         }
     } else {
@@ -91,8 +106,8 @@ fn ag() {
 
 fn ig() {
     let mut stdout = std::io::stdout();
-    let (eq, mut x_min, mut x_max) = get_p_inputs();
-    let g = w_auto(&eq, x_min, x_max, 240, 120);
+    let (eq, mut x_min, mut x_max) = get_g_inputs();
+    let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT);
 
     if let Ok(g) = g {
         writeln!(stdout, "{}", g).unwrap();
@@ -114,7 +129,8 @@ fn ig() {
                     stdout
                         .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                         .unwrap();
-                    let g = w_auto(&eq, x_min, x_max, 240, 120).unwrap();
+                    let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT).unwrap();
+
                     writeln!(stdout, "{}", g).unwrap();
                     enable_raw_mode().unwrap();
                 }
@@ -131,7 +147,8 @@ fn ig() {
                     stdout
                         .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                         .unwrap();
-                    let g = w_auto(&eq, x_min, x_max, 240, 120).unwrap();
+                    let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT).unwrap();
+
                     writeln!(stdout, "{}", g).unwrap();
                     enable_raw_mode().unwrap();
                 }
@@ -170,4 +187,14 @@ fn la() {
             _ => eprintln!("invalid operation"),
         }
     }
+}
+
+fn get_g_inputs() -> (String, f32, f32) {
+    let eq = get_textual_input("equation: ");
+
+    let x_min = get_numerical_input("x min: ");
+
+    let x_max = get_numerical_input("x max: ");
+
+    (eq, x_min, x_max)
 }
