@@ -13,10 +13,10 @@ use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{cursor, ExecutableCommand};
 use std::io::Write;
 
-use super::plot_utils::*;
+use super::plot_utils::graph;
 
-const Y_MIN: f32 = -7_f32;
-const Y_MAX: f32 = 7_f32;
+const Y_MIN: f32 = -7f32;
+const Y_MAX: f32 = 7f32;
 const HEIGHT: usize = 120;
 const WIDTH: usize = 240;
 
@@ -65,7 +65,7 @@ fn g() {
     let (eq, x_min, x_max) = get_g_inputs();
     let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT);
     if let Ok(g) = g {
-        println!("{}", g);
+        println!("{g}");
     } else {
         eprintln!("{}", g.unwrap_err());
     }
@@ -77,7 +77,7 @@ fn ag() {
     let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT);
 
     if let Ok(g) = g {
-        writeln!(stdout, "{}", g).unwrap();
+        writeln!(stdout, "{g}").unwrap();
         let new_lines = g.chars().filter(|c| c.eq_ignore_ascii_case(&'\n')).count() + 1;
 
         for n in 0..100 {
@@ -97,7 +97,7 @@ fn ag() {
             )
             .unwrap();
 
-            writeln!(stdout, "{}", g).unwrap();
+            writeln!(stdout, "{g}").unwrap();
         }
     } else {
         eprintln!("{}", g.unwrap_err());
@@ -110,7 +110,7 @@ fn ig() {
     let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT);
 
     if let Ok(g) = g {
-        writeln!(stdout, "{}", g).unwrap();
+        writeln!(stdout, "{g}").unwrap();
 
         let new_lines = g.chars().filter(|c| c.eq_ignore_ascii_case(&'\n')).count() + 1;
         enable_raw_mode().unwrap();
@@ -131,7 +131,7 @@ fn ig() {
                         .unwrap();
                     let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT).unwrap();
 
-                    writeln!(stdout, "{}", g).unwrap();
+                    writeln!(stdout, "{g}").unwrap();
                     enable_raw_mode().unwrap();
                 }
 
@@ -149,7 +149,7 @@ fn ig() {
                         .unwrap();
                     let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT).unwrap();
 
-                    writeln!(stdout, "{}", g).unwrap();
+                    writeln!(stdout, "{g}").unwrap();
                     enable_raw_mode().unwrap();
                 }
 
@@ -176,12 +176,12 @@ fn la() {
             "vs" | "vector sum" => {
                 let m = get_matrix_input();
                 let sum = vector_sum(&m);
-                println!("{:#?}", sum);
+                println!("{sum:#?}");
             }
             "vm" | "vector mean" => {
                 let m = get_matrix_input();
                 let sum = vector_mean(&m);
-                println!("{:#?}", sum);
+                println!("{sum:#?}");
             }
             "b" | "back" => break,
             _ => eprintln!("invalid operation"),

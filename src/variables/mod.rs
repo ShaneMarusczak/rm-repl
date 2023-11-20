@@ -17,18 +17,18 @@ pub(crate) fn handle_var(str: &str, repl: &mut repl::Repl) {
     }
 }
 
-pub(crate) fn insert_ans_vars(str: &str, repl: &repl::Repl) -> String {
-    let mut str = str.to_owned();
+pub(crate) fn insert_ans_vars(s: &str, repl: &repl::Repl) -> String {
+    let mut s = s.to_owned();
 
-    if repl.previous_answer_valid && str.contains("ans") {
-        str = str.replace("ans", &repl.previous_answer.to_string());
+    if repl.previous_answer_valid && s.contains("ans") {
+        s = s.replace("ans", &repl.previous_answer.to_string());
     }
 
     for (from, to) in &repl.variables {
-        str = str.replace(*from, to);
+        s = s.replace(*from, to);
     }
 
-    str
+    s
 }
 
 pub(crate) fn is_variable(str: &str) -> bool {

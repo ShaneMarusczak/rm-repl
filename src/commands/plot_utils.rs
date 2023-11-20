@@ -73,7 +73,7 @@ fn get_normalized_points(
 
     let y_values: Arc<Vec<f32>> = Arc::new(
         (0..=height)
-            .map(|n| y_min + (((y_max - y_min) / height as f32) * n as f32))
+            .map(|n| ((y_max - y_min) / height as f32).mul_add(n as f32, y_min))
             .collect(),
     );
 
@@ -82,7 +82,7 @@ fn get_normalized_points(
 
     let mut threads = Vec::with_capacity(num_threads);
 
-    let points_chunks: Vec<Vec<Point>> = points.chunks(chunk_size).map(|p| p.to_vec()).collect();
+    let points_chunks: Vec<Vec<Point>> = points.chunks(chunk_size).map(|p| p.into()).collect();
 
     for (c, chunk) in points_chunks.into_iter().enumerate() {
         let y_values = Arc::clone(&y_values);
@@ -193,7 +193,7 @@ fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<Cell>>) -> Vec<
                     u32::from_str_radix(&format!("28{:02x}", decimal_number), 16).unwrap();
                 let character = char::from_u32(code_point).unwrap();
 
-                //each braile char is actually 4 rows
+                //each braille char is actually 4 rows
                 chars[row / 4].push(character);
             }
         }
@@ -206,7 +206,7 @@ fn check_add_x_axis(y_min: f32, y_max: f32, height: usize, matrix: &mut [Vec<Cel
 
     if x_axis_in_view {
         if let Some(row) = matrix.get_mut(x_axis_row) {
-            for c in row.iter_mut() {
+            for c in &mut *row {
                 c.value = true;
             }
         }
