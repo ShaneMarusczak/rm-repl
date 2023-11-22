@@ -1,14 +1,17 @@
-use std::collections::HashMap;
-
 mod commands;
+mod graphing;
 mod inputs;
 mod repl;
 mod run;
+mod string_maker;
+mod structs;
 mod variables;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
+    //allow graphing directly from command tool?
+    //args greater than 2 is command tool, look for flags i.e. "rmr -g y=sin(x) -5 5"
     match args.len() {
         1 => as_repl(),
         2 => as_command_tool(&args[1]),
@@ -21,6 +24,8 @@ fn as_command_tool(line: &str) {
 }
 
 fn as_repl() {
+    use std::collections::HashMap;
+
     println!("\n--rusty maths repl--\n");
 
     let mut repl = repl::Repl {
@@ -37,7 +42,7 @@ fn as_repl() {
         } else if let Some(stripped) = line.strip_prefix(':') {
             match stripped {
                 "q" | "quit" => break,
-                _ => commands::run_commands::run_command(stripped, &mut repl),
+                _ => commands::run_command(stripped, &mut repl),
             }
         } else if !repl.previous_answer_valid && line.contains("ans") {
             eprintln!("invalid use of 'ans'");

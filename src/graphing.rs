@@ -1,24 +1,21 @@
+use crate::string_maker::make_graph_string;
+use crate::structs::{Cell, NormalizedPoint};
 use rusty_maths::{
     equation_analyzer::{calculator::plot, eq_data_builder::Point},
     utilities::abs_f32,
 };
 
-use super::structs::{Cell, NormalizedPoint};
+const Y_MIN: f32 = -7f32;
+const Y_MAX: f32 = 7f32;
+const HEIGHT: usize = 120;
+const WIDTH: usize = 240;
 
-pub(crate) fn graph(
-    eq: &str,
-    x_min: f32,
-    x_max: f32,
-    y_min: f32,
-    y_max: f32,
-    width: usize,
-    height: usize,
-) -> Result<String, String> {
-    let mut y_min = y_min;
-    let mut y_max = y_max;
-    let multiplier = (width / 8) as f32;
+pub(crate) fn graph(eq: &str, x_min: f32, x_max: f32) -> Result<String, String> {
+    let mut y_min = Y_MIN;
+    let mut y_max = Y_MAX;
+    let multiplier = (WIDTH / 8) as f32;
 
-    let x_step = (x_max - x_min) / ((width as f32) * multiplier);
+    let x_step = (x_max - x_min) / ((WIDTH as f32) * multiplier);
 
     let points = plot(eq, x_min, x_max, x_step)?;
     let y_min_actual = get_y_min(&points);
@@ -39,28 +36,27 @@ pub(crate) fn graph(
     y_max += 0.5;
     y_min -= 0.5;
 
-    let mut matrix = make_matrix(height + 1, width + 1);
+    let mut matrix = make_matrix(HEIGHT + 1, WIDTH + 1);
 
-    for np in get_normalized_points(height, y_min, y_max, &points, multiplier)
+    for np in get_normalized_points(HEIGHT, y_min, y_max, &points, multiplier)
         .iter()
         .filter(|np| np.y_acc < y_max && np.y_acc > y_min)
     {
         matrix[np.y][np.x].value = true;
     }
 
-    check_add_x_axis(y_min, y_max, height, &mut matrix);
+    check_add_x_axis(y_min, y_max, HEIGHT, &mut matrix);
 
     matrix.reverse();
 
-    check_add_y_axis(x_min, x_max, width, &mut matrix);
+    check_add_y_axis(x_min, x_max, WIDTH, &mut matrix);
 
-    let braille_chars = get_braille(height, width, &mut matrix);
+    let braille_chars = get_braille(HEIGHT, WIDTH, &mut matrix);
 
-    Ok(get_graph_string(braille_chars, x_min, x_max, y_min, y_max))
+    Ok(make_graph_string(braille_chars, x_min, x_max, y_min, y_max))
 }
 
-///converts points to location on screen
-///-10..10 and -100..100 both need to fit on the same amount of screen real estate
+///normalizeds graph values to screen coordinates
 fn get_normalized_points(
     height: usize,
     y_min: f32,
@@ -116,38 +112,10 @@ fn get_normalized_points(
     normalized_points
 }
 
-///adds frame and x y mins and maxes
-fn get_graph_string(
-    chars: Vec<Vec<char>>,
-    x_min: f32,
-    x_max: f32,
-    y_min: f32,
-    y_max: f32,
-) -> String {
-    let gap = chars.first().map_or(0, |row| row.len());
-    let mut s = format!("{}\n", "-".repeat(gap + 1));
-
-    for (i, row) in chars.iter().enumerate() {
-        s.push('|');
-        for cell in row {
-            s.push(*cell);
-        }
-        s.push('|');
-        if i == 0 {
-            s += &format!("{:.2}", y_max);
-        } else if i == chars.len() - 1 {
-            s += &format!("{:.2}", y_min);
-        }
-        s.push('\n');
-    }
-    s += &format!("{}\n", "-".repeat(gap + 1));
-    s += &format!("{}{}{}{}", x_min, " ".repeat(gap - 2), x_max, " ".repeat(5));
-
-    s
-}
-
-///converts a matrix of 1s and 0s to a matrix of braille with dots at the 1s and blanks at the 0s
+///converts a matrix of 1s and 0s to a matrix of braille characters with dots at the 1s and blanks at the 0s
 ///https://en.wikipedia.org/wiki/Braille_Patterns
+///
+/// ⣿
 fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<Cell>>) -> Vec<Vec<char>> {
     let mut chars = Vec::with_capacity(height / 4);
     for _ in 0..(height / 4) {
@@ -156,12 +124,15 @@ fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<Cell>>) -> Vec<
     for row in 0..matrix.len() {
         for col in 0..matrix[row].len() {
             let cell = &matrix[row][col];
-            //if this cell has already been accounted for in a previous char, braille chars are 2 columns
+
+            //this cell has already been used in a previous char
             if cell.visited {
                 continue;
             }
+
             //represents a single braille char
-            let mut char = Vec::with_capacity(8);
+            let mut char: Vec<u8> = Vec::with_capacity(8);
+
             //1-6 braille dots
             for dx in 0..=1 {
                 for dy in 0..=2 {
@@ -173,6 +144,7 @@ fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<Cell>>) -> Vec<
                     }
                 }
             }
+
             //7-8 braille dots
             for dx in 0..=1 {
                 let dy = 3;
@@ -183,17 +155,16 @@ fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<Cell>>) -> Vec<
                     }
                 }
             }
-            if (row / 4) < chars.len() {
-                char.reverse();
 
+            //each braille char contains 4 rows
+            if (row / 4) < chars.len() {
                 //converts array of 0 and 1 to braille char
-                let binary_string = char.iter().map(|b| b.to_string()).collect::<String>();
+                let binary_string = char.iter().rev().map(|b| b.to_string()).collect::<String>();
                 let decimal_number = u8::from_str_radix(&binary_string, 2).unwrap();
                 let code_point =
                     u32::from_str_radix(&format!("28{:02x}", decimal_number), 16).unwrap();
                 let character = char::from_u32(code_point).unwrap();
 
-                //each braille char is actually 4 rows
                 chars[row / 4].push(character);
             }
         }
@@ -215,6 +186,7 @@ fn check_add_x_axis(y_min: f32, y_max: f32, height: usize, matrix: &mut [Vec<Cel
 
 fn check_add_y_axis(x_min: f32, x_max: f32, width: usize, matrix: &mut [Vec<Cell>]) {
     let (y_axis_in_view, y_axis_col) = x_y_axis_setup(x_min, x_max, width);
+
     if y_axis_in_view {
         for row in matrix {
             row[y_axis_col].value = true;

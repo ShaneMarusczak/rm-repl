@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub(crate) struct Cell {
     pub(crate) value: bool,
     pub(crate) visited: bool,

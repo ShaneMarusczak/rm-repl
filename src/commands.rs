@@ -4,21 +4,16 @@ use rusty_maths::{
 };
 
 use crate::{
+    graphing::graph,
     inputs::{get_matrix_input, get_numerical_input, get_textual_input},
     repl::{PreviousAnswer, Repl},
+    string_maker::make_table_string,
 };
 
 use crossterm::event::{read, Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{cursor, ExecutableCommand};
 use std::io::Write;
-
-use super::plot_utils::graph;
-
-const Y_MIN: f32 = -7f32;
-const Y_MAX: f32 = 7f32;
-const HEIGHT: usize = 120;
-const WIDTH: usize = 240;
 
 pub(crate) fn run_command(line: &str, repl: &mut Repl) {
     match line {
@@ -28,7 +23,7 @@ pub(crate) fn run_command(line: &str, repl: &mut Repl) {
         "ig" | "interactive graph" => ig(),
         "la" | "linear algebra" => la(),
         _ => {
-            eprintln!("invalid command");
+            eprintln!("invalid command {line}");
             repl.previous_answer(0.0, false);
         }
     }
@@ -41,21 +36,7 @@ fn t() {
     let points = plot(&eq, x_min, x_max, step_size);
 
     if let Ok(points) = points {
-        let underline_start = "\u{001b}[4m";
-        let underline_end = "\u{001b}[0m";
-        println!(" {}{}{} ", underline_start, " ".repeat(13), underline_end);
-        println!(
-            "|{} {:<4}| {:<6}{}|",
-            underline_start, "X", "Y", underline_end
-        );
-
-        for point in points {
-            let y = (point.y * 100.0).round() / 100.0;
-            println!(
-                "|{}{:<4} | {:<6}{}|",
-                underline_start, point.x, y, underline_end
-            );
-        }
+        println!("{}", make_table_string(points));
     } else {
         eprintln!("{}", points.unwrap_err());
     }
@@ -63,7 +44,7 @@ fn t() {
 
 fn g() {
     let (eq, x_min, x_max) = get_g_inputs();
-    let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT);
+    let g = graph(&eq, x_min, x_max);
     if let Ok(g) = g {
         println!("{g}");
     } else {
@@ -74,7 +55,7 @@ fn g() {
 fn ag() {
     let mut stdout = std::io::stdout();
     let (eq, x_min, x_max) = get_g_inputs();
-    let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT);
+    let g = graph(&eq, x_min, x_max);
 
     if let Ok(g) = g {
         writeln!(stdout, "{g}").unwrap();
@@ -86,16 +67,7 @@ fn ag() {
             stdout
                 .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                 .unwrap();
-            let g = graph(
-                &eq,
-                x_min - n as f32,
-                x_max + n as f32,
-                Y_MIN,
-                Y_MAX,
-                WIDTH,
-                HEIGHT,
-            )
-            .unwrap();
+            let g = graph(&eq, x_min - n as f32, x_max + n as f32).unwrap();
 
             writeln!(stdout, "{g}").unwrap();
         }
@@ -107,7 +79,7 @@ fn ag() {
 fn ig() {
     let mut stdout = std::io::stdout();
     let (eq, mut x_min, mut x_max) = get_g_inputs();
-    let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT);
+    let g = graph(&eq, x_min, x_max);
 
     if let Ok(g) = g {
         writeln!(stdout, "{g}").unwrap();
@@ -129,7 +101,7 @@ fn ig() {
                     stdout
                         .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                         .unwrap();
-                    let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT).unwrap();
+                    let g = graph(&eq, x_min, x_max).unwrap();
 
                     writeln!(stdout, "{g}").unwrap();
                     enable_raw_mode().unwrap();
@@ -147,7 +119,7 @@ fn ig() {
                     stdout
                         .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                         .unwrap();
-                    let g = graph(&eq, x_min, x_max, Y_MIN, Y_MAX, WIDTH, HEIGHT).unwrap();
+                    let g = graph(&eq, x_min, x_max).unwrap();
 
                     writeln!(stdout, "{g}").unwrap();
                     enable_raw_mode().unwrap();
