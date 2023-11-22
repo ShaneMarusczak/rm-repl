@@ -45,6 +45,7 @@ fn t() {
 fn g() {
     let (eq, x_min, x_max) = get_g_inputs();
     let g = graph(&eq, x_min, x_max);
+
     if let Ok(g) = g {
         println!("{g}");
     } else {
@@ -54,6 +55,7 @@ fn g() {
 
 fn ag() {
     let mut stdout = std::io::stdout();
+
     let (eq, x_min, x_max) = get_g_inputs();
     let g = graph(&eq, x_min, x_max);
 
@@ -78,6 +80,7 @@ fn ag() {
 
 fn ig() {
     let mut stdout = std::io::stdout();
+
     let (eq, mut x_min, mut x_max) = get_g_inputs();
     let g = graph(&eq, x_min, x_max);
 
