@@ -3,6 +3,8 @@ use rusty_maths::{
     linear_algebra::{vector_mean, vector_sum},
 };
 
+use crate::logger::Logger;
+
 use crate::{
     graphing::graph,
     inputs::{get_g_inputs, get_matrix_input, get_numerical_input, get_text_input},
@@ -15,50 +17,48 @@ use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{cursor, ExecutableCommand};
 use std::io::Write;
 
-pub(crate) fn run_command(line: &str, repl: &mut Repl) {
+pub(crate) fn run_command(line: &str, repl: &mut Repl, l: &mut impl Logger) {
     match line {
-        //scrollable graph, like iteractive graph but you move a point along the graph instead of moving the graph
-        //left right moves the point, up down switches graphs (if multiple)
-        "t" | "table" => t(),
-        "g" | "graph" => g(),
-        "ag" | "animated graph" => ag(),
-        "ig" | "interactive graph" => ig(),
-        "la" | "linear algebra" => la(),
+        "t" | "table" => t(l),
+        "g" | "graph" => g(l),
+        "ag" | "animated graph" => ag(l),
+        "ig" | "interactive graph" => ig(l),
+        "la" | "linear algebra" => la(l),
         _ => {
-            eprintln!("invalid command {line}");
+            l.eprint(&format!("invalid command {line}"));
             repl.previous_answer(0.0, false);
         }
     }
 }
 
-fn t() {
-    let (eq, x_min, x_max) = get_g_inputs();
-    let step_size = get_numerical_input("step size: ");
+fn t(l: &mut impl Logger) {
+    let (eq, x_min, x_max) = get_g_inputs(l);
+    let step_size = get_numerical_input("step size: ", l);
 
     let points = plot(&eq, x_min, x_max, step_size);
 
     if let Ok(points) = points {
-        println!("{}", make_table_string(points));
+        l.print(&format!("{}", make_table_string(points)));
     } else {
-        eprintln!("{}", points.unwrap_err());
+        l.eprint(&format!("{}", points.unwrap_err()));
     }
 }
 
-fn g() {
-    let (eq, x_min, x_max) = get_g_inputs();
+fn g(l: &mut impl Logger) {
+    let (eq, x_min, x_max) = get_g_inputs(l);
     let g = graph(&eq, x_min, x_max);
 
     if let Ok(g) = g {
-        println!("{g}");
+        l.print(&format!("{g}"));
     } else {
-        eprintln!("{}", g.unwrap_err());
+        l.eprint(&g.unwrap_err());
     }
 }
 
-fn ag() {
+fn ag(l: &mut impl Logger) {
     let mut stdout = std::io::stdout();
 
-    let (eq, x_min, x_max) = get_g_inputs();
+    let (eq, x_min, x_max) = get_g_inputs(l);
     let g = graph(&eq, x_min, x_max);
 
     if let Ok(g) = g {
@@ -76,14 +76,14 @@ fn ag() {
             writeln!(stdout, "{g}").unwrap();
         }
     } else {
-        eprintln!("{}", g.unwrap_err());
+        l.eprint(&g.unwrap_err());
     }
 }
 
-fn ig() {
+fn ig(l: &mut impl Logger) {
     let mut stdout = std::io::stdout();
 
-    let (eq, mut x_min, mut x_max) = get_g_inputs();
+    let (eq, mut x_min, mut x_max) = get_g_inputs(l);
     let g = graph(&eq, x_min, x_max);
 
     if let Ok(g) = g {
@@ -141,27 +141,27 @@ fn ig() {
         }
         disable_raw_mode().unwrap();
     } else {
-        eprintln!("{}", g.unwrap_err());
+        l.eprint(&g.unwrap_err());
     }
 }
 
-fn la() {
+fn la(l: &mut impl Logger) {
     loop {
-        let op_code = get_text_input("operation: ");
+        let op_code = get_text_input("operation: ", l);
 
         match op_code.as_str() {
             "vs" | "vector sum" => {
-                let m = get_matrix_input();
+                let m = get_matrix_input(l);
                 let sum = vector_sum(&m);
-                println!("{sum:#?}");
+                l.print(&format!("{sum:#?}"));
             }
             "vm" | "vector mean" => {
-                let m = get_matrix_input();
+                let m = get_matrix_input(l);
                 let sum = vector_mean(&m);
-                println!("{sum:#?}");
+                l.print(&format!("{sum:#?}"));
             }
             "b" | "back" => break,
-            _ => eprintln!("invalid operation"),
+            _ => l.eprint("invalid operation"),
         }
     }
 }
