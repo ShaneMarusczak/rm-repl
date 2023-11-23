@@ -15,7 +15,6 @@ use crate::{
 use crossterm::event::{read, Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{cursor, ExecutableCommand};
-use std::io::Write;
 
 pub(crate) fn run_command(line: &str, repl: &mut Repl, l: &mut impl Logger) {
     match line {
@@ -38,9 +37,9 @@ fn t(l: &mut impl Logger) {
     let points = plot(&eq, x_min, x_max, step_size);
 
     if let Ok(points) = points {
-        l.print(&format!("{}", make_table_string(points)));
+        l.print(&make_table_string(points));
     } else {
-        l.eprint(&format!("{}", points.unwrap_err()));
+        l.eprint(&points.unwrap_err());
     }
 }
 
@@ -49,7 +48,7 @@ fn g(l: &mut impl Logger) {
     let g = graph(&eq, x_min, x_max);
 
     if let Ok(g) = g {
-        l.print(&format!("{g}"));
+        l.print(&g);
     } else {
         l.eprint(&g.unwrap_err());
     }
@@ -62,7 +61,7 @@ fn ag(l: &mut impl Logger) {
     let g = graph(&eq, x_min, x_max);
 
     if let Ok(g) = g {
-        writeln!(stdout, "{g}").unwrap();
+        l.print(&g);
         let new_lines = g.chars().filter(|c| c.eq_ignore_ascii_case(&'\n')).count() + 1;
 
         for n in 0..100 {
@@ -73,7 +72,7 @@ fn ag(l: &mut impl Logger) {
                 .unwrap();
             let g = graph(&eq, x_min - n as f32, x_max + n as f32).unwrap();
 
-            writeln!(stdout, "{g}").unwrap();
+            l.print(&g);
         }
     } else {
         l.eprint(&g.unwrap_err());
@@ -87,7 +86,7 @@ fn ig(l: &mut impl Logger) {
     let g = graph(&eq, x_min, x_max);
 
     if let Ok(g) = g {
-        writeln!(stdout, "{g}").unwrap();
+        l.print(&g);
 
         let new_lines = g.chars().filter(|c| c.eq_ignore_ascii_case(&'\n')).count() + 1;
         enable_raw_mode().unwrap();
@@ -108,7 +107,7 @@ fn ig(l: &mut impl Logger) {
                         .unwrap();
                     let g = graph(&eq, x_min, x_max).unwrap();
 
-                    writeln!(stdout, "{g}").unwrap();
+                    l.print(&g);
                     enable_raw_mode().unwrap();
                 }
 
@@ -126,7 +125,7 @@ fn ig(l: &mut impl Logger) {
                         .unwrap();
                     let g = graph(&eq, x_min, x_max).unwrap();
 
-                    writeln!(stdout, "{g}").unwrap();
+                    l.print(&g);
                     enable_raw_mode().unwrap();
                 }
 

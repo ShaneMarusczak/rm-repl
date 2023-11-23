@@ -48,7 +48,7 @@ pub(crate) fn as_cli_tool(args: &Vec<String>, l: &mut impl Logger) {
                 if x_min >= x_max {
                     let g = graphing::graph(&args[2], x_min, x_max);
                     if let Ok(g) = g {
-                        l.print(&format!("{g}"));
+                        l.print(&g);
                     } else {
                         l.eprint(&g.unwrap_err());
                     }
