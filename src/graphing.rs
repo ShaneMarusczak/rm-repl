@@ -5,49 +5,71 @@ use rusty_maths::{
     utilities::abs_f32,
 };
 
+type Matrix = Vec<Vec<Cell>>;
+
 const Y_MIN: f32 = -7f32;
 const Y_MAX: f32 = 7f32;
 const HEIGHT: usize = 120;
 const WIDTH: usize = 240;
 
-pub(crate) fn graph(eq: &str, x_min: f32, x_max: f32) -> Result<String, String> {
+pub(crate) fn graph(eq_str: &str, x_min: f32, x_max: f32) -> Result<String, String> {
     let mut y_min = Y_MIN;
     let mut y_max = Y_MAX;
 
-    let sampling_factor = (WIDTH / 16) as f32;
+    let mut master_y_min = f32::MAX;
+    let mut master_y_max = f32::MIN;
+
+    let sampling_factor = (WIDTH / 10) as f32;
 
     let x_step = (x_max - x_min) / ((WIDTH as f32) * sampling_factor);
 
-    let points = plot(eq, x_min, x_max, x_step)?;
+    let eqs: Vec<&str> = eq_str.split('|').collect();
 
-    let y_min_actual = get_y_min(&points);
-    let y_max_actual = get_y_max(&points);
+    let mut matrix: Matrix = make_matrix(HEIGHT + 1, WIDTH + 1);
 
-    y_max = if abs_f32(y_max - y_max_actual) < 50_f32 {
-        y_max_actual
-    } else {
-        y_max
-    };
+    let mut points_collection = Vec::with_capacity(eqs.len());
 
-    y_min = if abs_f32(y_min - y_min_actual) < 50_f32 {
-        y_min_actual
-    } else {
-        y_min
-    };
+    for eq in eqs {
+        let points = plot(eq, x_min, x_max, x_step)?;
 
-    y_max += 0.5;
-    y_min -= 0.5;
+        let y_min_actual = get_y_min(&points);
+        let y_max_actual = get_y_max(&points);
 
-    let mut matrix = make_matrix(HEIGHT + 1, WIDTH + 1);
+        y_max = if abs_f32(y_max - y_max_actual) < 50_f32 {
+            y_max_actual
+        } else {
+            y_max
+        };
 
-    for np in get_normalized_points(HEIGHT, y_min, y_max, &points, sampling_factor)
-        .iter()
-        .filter(|np| np.y_acc < y_max && np.y_acc > y_min)
-    {
-        matrix[np.y][np.x].value = true;
+        y_min = if abs_f32(y_min - y_min_actual) < 50_f32 {
+            y_min_actual
+        } else {
+            y_min
+        };
+
+        if y_min < master_y_min {
+            master_y_min = y_min;
+        }
+        if y_max > master_y_max {
+            master_y_max = y_max;
+        }
+        points_collection.push(points);
     }
 
-    check_add_x_axis(y_min, y_max, HEIGHT, &mut matrix);
+    for points in points_collection {
+        for np in
+            get_normalized_points(HEIGHT, master_y_min, master_y_max, &points, sampling_factor)
+                .iter()
+                .filter(|np| np.y_acc < master_y_max && np.y_acc > master_y_min)
+        {
+            matrix[np.y][np.x].value = true;
+        }
+    }
+
+    master_y_max += 0.5;
+    master_y_min -= 0.5;
+
+    check_add_x_axis(master_y_min, master_y_max, HEIGHT, &mut matrix);
 
     matrix.reverse();
 
@@ -55,7 +77,13 @@ pub(crate) fn graph(eq: &str, x_min: f32, x_max: f32) -> Result<String, String> 
 
     let braille_chars = get_braille(HEIGHT, WIDTH, &mut matrix);
 
-    Ok(make_graph_string(braille_chars, x_min, x_max, y_min, y_max))
+    Ok(make_graph_string(
+        braille_chars,
+        x_min,
+        x_max,
+        master_y_min,
+        master_y_max,
+    ))
 }
 
 ///normalizeds graph values to screen coordinates
@@ -117,7 +145,7 @@ fn get_normalized_points(
 ///https://en.wikipedia.org/wiki/Braille_Patterns
 ///
 /// ⣿
-fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<Cell>>) -> Vec<Vec<char>> {
+fn get_braille(height: usize, width: usize, matrix: &mut Matrix) -> Vec<Vec<char>> {
     let mut chars = Vec::with_capacity(height / 4);
     for _ in 0..(height / 4) {
         chars.push(Vec::with_capacity(width / 2));
@@ -173,7 +201,7 @@ fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<Cell>>) -> Vec<
     chars
 }
 
-fn check_add_x_axis(y_min: f32, y_max: f32, height: usize, matrix: &mut [Vec<Cell>]) {
+fn check_add_x_axis(y_min: f32, y_max: f32, height: usize, matrix: &mut Matrix) {
     let (x_axis_in_view, x_axis_row) = x_y_axis_setup(y_min, y_max, height);
 
     if x_axis_in_view {
@@ -185,7 +213,7 @@ fn check_add_x_axis(y_min: f32, y_max: f32, height: usize, matrix: &mut [Vec<Cel
     }
 }
 
-fn check_add_y_axis(x_min: f32, x_max: f32, width: usize, matrix: &mut [Vec<Cell>]) {
+fn check_add_y_axis(x_min: f32, x_max: f32, width: usize, matrix: &mut Matrix) {
     let (y_axis_in_view, y_axis_col) = x_y_axis_setup(x_min, x_max, width);
 
     if y_axis_in_view {
@@ -215,7 +243,7 @@ fn get_y_max(points: &[Point]) -> f32 {
     y_max
 }
 
-fn make_matrix(vec_count: usize, vec_length: usize) -> Vec<Vec<Cell>> {
+fn make_matrix(vec_count: usize, vec_length: usize) -> Matrix {
     (0..vec_count)
         .map(|_| (0..vec_length).map(|_| Cell::new()).collect())
         .collect()
