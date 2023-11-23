@@ -5,7 +5,7 @@ use rusty_maths::{
 
 use crate::{
     graphing::graph,
-    inputs::{get_matrix_input, get_numerical_input, get_textual_input},
+    inputs::{get_g_inputs, get_matrix_input, get_numerical_input, get_text_input},
     repl::{PreviousAnswer, Repl},
     string_maker::make_table_string,
 };
@@ -145,7 +145,7 @@ fn ig() {
 
 fn la() {
     loop {
-        let op_code = get_textual_input("operation: ");
+        let op_code = get_text_input("operation: ");
 
         match op_code.as_str() {
             "vs" | "vector sum" => {
@@ -162,14 +162,4 @@ fn la() {
             _ => eprintln!("invalid operation"),
         }
     }
-}
-
-fn get_g_inputs() -> (String, f32, f32) {
-    let eq = get_textual_input("equation: ");
-
-    let x_min = get_numerical_input("x min: ");
-
-    let x_max = get_numerical_input("x max: ");
-
-    (eq, x_min, x_max)
 }

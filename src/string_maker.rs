@@ -57,11 +57,10 @@ pub(crate) fn make_graph_string(
     y_max: f32,
 ) -> String {
     let gap = chars.first().map_or(0, |row| row.len());
-    let gap_str = HORIZONTAL_BAR.to_string().repeat(gap);
+    let gap_str = HORIZONTAL_BAR.repeat(gap);
 
     let top_line = format!("{}{}{}{:.2}\n", UPPER_LEFT, gap_str, UPPER_RIGHT, y_max);
 
-    //each fold writes a new line to the accumulator
     let middle_lines = chars.iter().fold(String::new(), |mut acc, s| {
         writeln!(
             acc,
@@ -76,7 +75,7 @@ pub(crate) fn make_graph_string(
 
     let bottom_line = format!("{}{}{}{:.2}\n", BOTTOM_LEFT, gap_str, BOTTOM_RIGHT, y_min);
 
-    let x_axis_line = format!("{}{}{}{}", x_min, " ".repeat(gap - 2), x_max, " ".repeat(5));
+    let x_axis_line = format!("{}{}{}{}", x_min, " ".repeat(gap - 1), x_max, " ".repeat(5));
 
     top_line + &middle_lines + &bottom_line + &x_axis_line
 }

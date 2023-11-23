@@ -13,11 +13,13 @@ const WIDTH: usize = 240;
 pub(crate) fn graph(eq: &str, x_min: f32, x_max: f32) -> Result<String, String> {
     let mut y_min = Y_MIN;
     let mut y_max = Y_MAX;
-    let multiplier = (WIDTH / 8) as f32;
 
-    let x_step = (x_max - x_min) / ((WIDTH as f32) * multiplier);
+    let sampling_factor = (WIDTH / 16) as f32;
+
+    let x_step = (x_max - x_min) / ((WIDTH as f32) * sampling_factor);
 
     let points = plot(eq, x_min, x_max, x_step)?;
+
     let y_min_actual = get_y_min(&points);
     let y_max_actual = get_y_max(&points);
 
@@ -38,7 +40,7 @@ pub(crate) fn graph(eq: &str, x_min: f32, x_max: f32) -> Result<String, String> 
 
     let mut matrix = make_matrix(HEIGHT + 1, WIDTH + 1);
 
-    for np in get_normalized_points(HEIGHT, y_min, y_max, &points, multiplier)
+    for np in get_normalized_points(HEIGHT, y_min, y_max, &points, sampling_factor)
         .iter()
         .filter(|np| np.y_acc < y_max && np.y_acc > y_min)
     {
@@ -62,7 +64,7 @@ fn get_normalized_points(
     y_min: f32,
     y_max: f32,
     points: &[Point],
-    multiplier: f32,
+    sampling_factor: f32,
 ) -> Vec<NormalizedPoint> {
     use std::sync::Arc;
     use std::thread;
@@ -83,9 +85,9 @@ fn get_normalized_points(
     for (c, chunk) in points_chunks.into_iter().enumerate() {
         let y_values = Arc::clone(&y_values);
         threads.push(thread::spawn(move || {
-            let mut thread_results = vec![];
+            let mut thread_results = Vec::with_capacity(chunk_size);
             for (i, point) in chunk.iter().enumerate() {
-                let x = (i + (c * chunk.len())) / multiplier as usize;
+                let x = (i + (c * chunk_size)) / sampling_factor as usize;
 
                 let mut min_dif = f32::MAX;
                 let mut y = 0;
@@ -97,8 +99,7 @@ fn get_normalized_points(
                     }
                 }
 
-                let n = NormalizedPoint::new(x, y, point.y);
-                thread_results.push(n);
+                thread_results.push(NormalizedPoint::new(x, y, point.y));
             }
             thread_results
         }));
@@ -136,10 +137,10 @@ fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<Cell>>) -> Vec<
             //1-6 braille dots
             for dx in 0..=1 {
                 for dy in 0..=2 {
-                    if let Some(row_data) = matrix.get(row + dy) {
-                        if let Some(cell_data) = row_data.get(col + dx) {
+                    if let Some(row_data) = matrix.get_mut(row + dy) {
+                        if let Some(cell_data) = row_data.get_mut(col + dx) {
                             char.push(cell_data.value as u8);
-                            matrix[row + dy][col + dx].visited = true;
+                            cell_data.visited = true;
                         }
                     }
                 }
@@ -148,10 +149,10 @@ fn get_braille(height: usize, width: usize, matrix: &mut Vec<Vec<Cell>>) -> Vec<
             //7-8 braille dots
             for dx in 0..=1 {
                 let dy = 3;
-                if let Some(row_data) = matrix.get(row + dy) {
-                    if let Some(cell_data) = row_data.get(col + dx) {
+                if let Some(row_data) = matrix.get_mut(row + dy) {
+                    if let Some(cell_data) = row_data.get_mut(col + dx) {
                         char.push(cell_data.value as u8);
-                        matrix[row + dy][col + dx].visited = true;
+                        cell_data.visited = true;
                     }
                 }
             }
