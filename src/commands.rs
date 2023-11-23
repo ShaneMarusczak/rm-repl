@@ -17,6 +17,8 @@ use std::io::Write;
 
 pub(crate) fn run_command(line: &str, repl: &mut Repl) {
     match line {
+        //scrollable graph, like iteractive graph but you move a point along the graph instead of moving the graph
+        //left right moves the point, up down switches graphs (if multiple)
         "t" | "table" => t(),
         "g" | "graph" => g(),
         "ag" | "animated graph" => ag(),
