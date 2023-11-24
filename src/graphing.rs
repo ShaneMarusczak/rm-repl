@@ -21,6 +21,7 @@ pub(crate) fn graph(eq_str: &str, x_min: f32, x_max: f32) -> Result<String, Stri
     let mut master_y_min: f32 = f32::MAX;
     let mut master_y_max: f32 = f32::MIN;
 
+    //still fiddling trying to find the correct value
     let sampling_factor: f32 = (WIDTH / 16) as f32;
 
     let x_step: f32 = (x_max - x_min) / ((WIDTH as f32) * sampling_factor);
@@ -98,9 +99,11 @@ fn get_normalized_points(
     use std::sync::Arc;
     use std::thread;
 
+    let y_step = (y_max - y_min) / height as f32;
+
     let y_values: Arc<Vec<f32>> = Arc::new(
         (0..=height)
-            .map(|n| ((y_max - y_min) / height as f32).mul_add(n as f32, y_min))
+            .map(|n| y_step.mul_add(n as f32, y_min))
             .collect(),
     );
 
@@ -115,6 +118,7 @@ fn get_normalized_points(
 
     for (c, chunk) in points_chunks.into_iter().enumerate() {
         let y_values: Arc<Vec<f32>> = Arc::clone(&y_values);
+
         threads.push(thread::spawn(move || {
             let mut thread_results: Vec<NormalizedPoint> = Vec::with_capacity(chunk_size);
             let chunk_offset = c * chunk_size;

@@ -17,9 +17,9 @@ use crate::logger::StdoutLogger;
 //TODO: scrollable graph, like iteractive graph but you move a point along the graph instead of moving the graph
 //left right moves the point, up down switches graphs (if multiple)
 
-//TODO: also, UNIT TESTS
-
 //TODO: write a proper readme
+
+//TODO: -t in cli prints table
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
