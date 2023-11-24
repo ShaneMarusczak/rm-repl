@@ -25,7 +25,7 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
             l.eprint("invalid use of 'ans'");
             continue;
         } else if variables::is_variable(&line) {
-            variables::handle_var(&line, &mut repl);
+            variables::handle_var(&line, &mut repl, l);
         } else {
             evaluate::evaluate(&line, &mut repl, l);
         }

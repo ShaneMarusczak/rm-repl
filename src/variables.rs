@@ -1,8 +1,8 @@
 use rusty_maths::equation_analyzer::calculator::calculate;
 
-use crate::repl;
+use crate::{logger::Logger, repl};
 
-pub(crate) fn handle_var(str: &str, repl: &mut repl::Repl) {
+pub(crate) fn handle_var(str: &str, repl: &mut repl::Repl, l: &mut impl Logger) {
     let mut iter = str.chars();
     let name = iter.next().unwrap();
 
@@ -13,7 +13,7 @@ pub(crate) fn handle_var(str: &str, repl: &mut repl::Repl) {
     if let Ok(v) = calculate(exp.trim()) {
         repl.variables.insert(name, v.to_string());
     } else {
-        eprintln!("invalid value");
+        l.eprint("invalid value");
     }
 }
 

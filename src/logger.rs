@@ -6,7 +6,7 @@ pub(crate) trait Logger {
 pub(crate) struct StdoutLogger;
 pub(crate) struct TestLogger {
     pub(crate) val: String,
-    pub(crate) eval: String,
+    pub(crate) error_val: String,
 }
 
 impl Logger for StdoutLogger {
@@ -23,6 +23,6 @@ impl Logger for TestLogger {
         self.val = value.to_owned();
     }
     fn eprint(&mut self, value: &str) {
-        self.eval = value.to_owned();
+        self.error_val = value.to_owned();
     }
 }
