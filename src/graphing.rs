@@ -238,7 +238,7 @@ fn check_add_y_axis(x_min: f32, x_max: f32, width: usize, matrix: &mut CellMatri
     }
 }
 
-fn get_y_min(points: &Vec<Point>) -> f32 {
+pub(crate) fn get_y_min(points: &Vec<Point>) -> f32 {
     let mut y_min: f32 = f32::MAX;
     for point in points {
         if point.y < y_min {
@@ -248,7 +248,7 @@ fn get_y_min(points: &Vec<Point>) -> f32 {
     y_min
 }
 
-fn get_y_max(points: &Vec<Point>) -> f32 {
+pub(crate) fn get_y_max(points: &Vec<Point>) -> f32 {
     let mut y_max: f32 = f32::MIN;
     for point in points {
         if point.y > y_max {

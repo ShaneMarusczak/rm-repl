@@ -2,11 +2,15 @@
 mod rmr_tests {
     use std::collections::HashMap;
 
+    use rusty_maths::equation_analyzer::eq_data_builder::Point;
+
     use crate::{
         evaluate::{evaluate, simple_evaluate},
+        graphing::{get_y_max, get_y_min, graph},
         logger::TestLogger,
         repl::Repl,
         run::as_cli_tool,
+        string_maker::make_table_string,
         variables::{handle_var, is_variable},
     };
 
@@ -30,12 +34,21 @@ mod rmr_tests {
     }
 
     fn is_graph_string(g: &str) -> bool {
-        //The only place in the program these three chars are used in in the creation of a valid graph
+        //The only place in the program these three chars are used is in the creation of a valid graph
         let empty_braille_char = '⠀';
         let upper_left = '┌';
         let upper_right = '┐';
 
         g.contains(empty_braille_char) && g.contains(upper_left) && g.contains(upper_right)
+    }
+
+    fn is_table_string(g: &str) -> bool {
+        //Table uses the same upper left and right but no braille
+        let empty_braille_char = '⠀';
+        let upper_left = '┌';
+        let upper_right = '┐';
+
+        !g.contains(empty_braille_char) && g.contains(upper_left) && g.contains(upper_right)
     }
 
     #[test]
@@ -185,7 +198,6 @@ mod rmr_tests {
 
         //When
         evaluate(line_3, &mut repl, &mut test_logger);
-
         //Then
         assert!(repl.previous_answer_valid);
         assert_eq!(repl.previous_answer, 3.0);
@@ -253,5 +265,176 @@ mod rmr_tests {
         //Then
         assert!(is_graph_string(&test_logger.val));
         assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn as_cli_tool_test_graph_error() {
+        //Given
+        let args = vec![
+            "rmr".to_owned(),
+            "-g".to_owned(),
+            "y=x".to_owned(),
+            "-2".to_owned(),
+        ];
+        let mut test_logger = get_test_logger();
+
+        //When
+        as_cli_tool(&args, &mut test_logger);
+
+        //Then
+        assert!(&test_logger.val.is_empty());
+        assert_eq!(
+            "Usage: rmr -g [equation] [x-min] [x-max]",
+            test_logger.error_val
+        );
+    }
+
+    #[test]
+    fn as_cli_tool_test_graph_error_2() {
+        //Given
+        let args = vec![
+            "rmr".to_owned(),
+            "-g".to_owned(),
+            "y=x".to_owned(),
+            "-2".to_owned(),
+            "-3".to_owned(),
+        ];
+        let mut test_logger = get_test_logger();
+
+        //When
+        as_cli_tool(&args, &mut test_logger);
+
+        //Then
+        assert!(&test_logger.val.is_empty());
+        assert_eq!(
+            "x min `-2` must be less than x max `-3`",
+            test_logger.error_val
+        );
+    }
+
+    #[test]
+    fn as_cli_tool_test_graph_error_3() {
+        //Given
+        let args = vec![
+            "rmr".to_owned(),
+            "-g".to_owned(),
+            "y=q".to_owned(),
+            "-2".to_owned(),
+            "5".to_owned(),
+        ];
+        let mut test_logger = get_test_logger();
+
+        //When
+        as_cli_tool(&args, &mut test_logger);
+
+        //Then
+        assert!(&test_logger.val.is_empty());
+        assert_eq!("Invalid input at character 2", test_logger.error_val);
+    }
+
+    #[test]
+    fn as_cli_tool_test_graph_error_4() {
+        //Given
+        let args = vec![
+            "rmr".to_owned(),
+            "--graph".to_owned(),
+            "y=q".to_owned(),
+            "-2".to_owned(),
+            "a".to_owned(),
+        ];
+        let mut test_logger = get_test_logger();
+
+        //When
+        as_cli_tool(&args, &mut test_logger);
+
+        //Then
+        assert!(&test_logger.val.is_empty());
+        assert_eq!(
+            "x-min: `-2` and x-max: `a` must both be valid numbers",
+            test_logger.error_val
+        );
+    }
+
+    #[test]
+    fn as_cli_tool_test_bad_flag() {
+        //Given
+        let args = vec![
+            "rmr".to_owned(),
+            "-69".to_owned(),
+            "y=q".to_owned(),
+            "-2".to_owned(),
+            "a".to_owned(),
+        ];
+        let mut test_logger = get_test_logger();
+
+        //When
+        as_cli_tool(&args, &mut test_logger);
+
+        //Then
+        assert!(&test_logger.val.is_empty());
+        assert_eq!("invalid use of rmr", test_logger.error_val);
+    }
+
+    #[test]
+    fn graph_test() {
+        //Given
+        let eq_str = "y =sin(x  )";
+        let x_min = -5f32;
+        let x_max = 5f32;
+
+        //When
+        let g = graph(eq_str, x_min, x_max);
+
+        //Then
+        assert!(g.is_ok());
+        assert!(is_graph_string(&g.unwrap()));
+    }
+
+    #[test]
+    fn y_min_test() {
+        //Given
+        let points = vec![
+            Point::new(1.0, 1.0),
+            Point::new(2.0, 2.0),
+            Point::new(3.0, 3.0),
+        ];
+
+        //When
+        let min = get_y_min(&points);
+
+        //Then
+        assert_eq!(1.0, min);
+    }
+
+    #[test]
+    fn y_max_test() {
+        //Given
+        let points = vec![
+            Point::new(1.0, 1.0),
+            Point::new(2.0, 2.0),
+            Point::new(3.0, 3.0),
+        ];
+
+        //When
+        let max = get_y_max(&points);
+
+        //Then
+        assert_eq!(3.0, max);
+    }
+
+    #[test]
+    fn make_table_test() {
+        //Given
+        let points = vec![
+            Point::new(1.0, 1.0),
+            Point::new(2.0, 2.0),
+            Point::new(3.0, 3.0),
+        ];
+
+        //When
+        let table_string = make_table_string(points);
+
+        //Then
+        assert!(is_table_string(&table_string));
     }
 }
