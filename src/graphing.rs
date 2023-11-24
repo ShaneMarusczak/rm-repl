@@ -21,7 +21,7 @@ pub(crate) fn graph(eq_str: &str, x_min: f32, x_max: f32) -> Result<String, Stri
     let mut master_y_min: f32 = f32::MAX;
     let mut master_y_max: f32 = f32::MIN;
 
-    let sampling_factor: f32 = (WIDTH / 10) as f32;
+    let sampling_factor: f32 = (WIDTH / 12) as f32;
 
     let x_step: f32 = (x_max - x_min) / ((WIDTH as f32) * sampling_factor);
 
@@ -58,6 +58,9 @@ pub(crate) fn graph(eq_str: &str, x_min: f32, x_max: f32) -> Result<String, Stri
         points_collection.push(points);
     }
 
+    master_y_max += 0.5;
+    master_y_min -= 0.5;
+
     for points in points_collection {
         for np in
             get_normalized_points(HEIGHT, master_y_min, master_y_max, &points, sampling_factor)
@@ -67,9 +70,6 @@ pub(crate) fn graph(eq_str: &str, x_min: f32, x_max: f32) -> Result<String, Stri
             matrix[np.y][np.x].value = true;
         }
     }
-
-    master_y_max += 0.5;
-    master_y_min -= 0.5;
 
     check_add_x_axis(master_y_min, master_y_max, HEIGHT, &mut matrix);
 
@@ -113,23 +113,27 @@ fn get_normalized_points(
 
     for (c, chunk) in points_chunks.into_iter().enumerate() {
         let y_values: Arc<Vec<f32>> = Arc::clone(&y_values);
+        let chunk_offset = c * chunk_size;
 
         threads.push(thread::spawn(move || {
             let mut thread_results: Vec<NormalizedPoint> = Vec::with_capacity(chunk_size);
             for (i, point) in chunk.iter().enumerate() {
-                let x = (i + (c * chunk_size)) / sampling_factor as usize;
-
+                let x = (i + chunk_offset) / sampling_factor as usize;
                 let mut min_dif = f32::MAX;
                 let mut y = 0;
-                for (i, p) in y_values.iter().enumerate() {
-                    let dif = abs_f32(point.y - p);
+                for (idx, p) in y_values.iter().enumerate() {
+                    let dif = (point.y - p).abs();
                     if dif < min_dif {
                         min_dif = dif;
-                        y = i;
+                        y = idx;
                     }
                 }
 
-                thread_results.push(NormalizedPoint::new(x, y, point.y));
+                thread_results.push(NormalizedPoint {
+                    x,
+                    y,
+                    y_acc: point.y,
+                });
             }
             thread_results
         }));

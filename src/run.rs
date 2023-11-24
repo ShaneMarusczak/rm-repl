@@ -45,7 +45,7 @@ pub(crate) fn as_cli_tool(args: &Vec<String>, l: &mut impl Logger) {
             if args.len() != 5 {
                 l.eprint("Usage: rmr -g [equation] [x-min] [x-max]");
             } else if let (Ok(x_min), Ok(x_max)) = (args[3].parse(), args[4].parse()) {
-                if x_min >= x_max {
+                if x_min < x_max {
                     let g = graphing::graph(&args[2], x_min, x_max);
                     if let Ok(g) = g {
                         l.print(&g);

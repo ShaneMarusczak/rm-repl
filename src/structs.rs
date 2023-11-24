@@ -18,9 +18,3 @@ pub(crate) struct NormalizedPoint {
     pub(crate) y: usize,
     pub(crate) y_acc: f32,
 }
-
-impl NormalizedPoint {
-    pub(crate) const fn new(x: usize, y: usize, y_acc: f32) -> Self {
-        Self { x, y, y_acc }
-    }
-}

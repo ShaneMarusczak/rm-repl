@@ -13,7 +13,7 @@ pub(crate) fn handle_var(str: &str, repl: &mut repl::Repl, l: &mut impl Logger) 
     if let Ok(v) = calculate(exp.trim()) {
         repl.variables.insert(name, v.to_string());
     } else {
-        l.eprint("invalid value");
+        l.eprint("invalid variable value");
     }
 }
 
