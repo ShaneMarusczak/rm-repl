@@ -51,6 +51,14 @@ THIS TOOL IS A WORK IN PROGRESS, FEATURES MAY CHANGE AT ANY TIME WITH NO NOTICE.
   :vm | :vector mean -> vector mean mode
   ```
 
+- Graph mode accepts multiple equations separated by a `|`. Both equations will
+  be plotted in the same graph space adjusting for equations with different
+  ranges.
+  ```
+  >>:g
+  equation:y=sin(x) | y=cos(x)
+  ```
+
 - Alternatively you can pass flags and arguments to the program directly.
 - Passing no flags is interpreted as evaluation mode.
 
