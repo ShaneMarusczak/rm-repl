@@ -437,4 +437,116 @@ mod rmr_tests {
         //Then
         assert!(is_table_string(&table_string));
     }
+
+    #[test]
+    fn as_cli_tool_test_table() {
+        //Given
+        let args = vec![
+            "rmr".to_owned(),
+            "-t".to_owned(),
+            "y=x".to_owned(),
+            "-2".to_owned(),
+            "2".to_owned(),
+            "1".to_owned(),
+        ];
+        let mut test_logger = get_test_logger();
+
+        //When
+        as_cli_tool(&args, &mut test_logger);
+
+        //Then
+        assert!(is_table_string(&test_logger.val));
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn as_cli_tool_test_table_error() {
+        //Given
+        let args = vec![
+            "rmr".to_owned(),
+            "-t".to_owned(),
+            "y=x".to_owned(),
+            "-2".to_owned(),
+        ];
+        let mut test_logger = get_test_logger();
+
+        //When
+        as_cli_tool(&args, &mut test_logger);
+
+        //Then
+        assert!(&test_logger.val.is_empty());
+        assert_eq!(
+            "Usage: rmr -t [equation] [x-min] [x-max] [step_size]",
+            test_logger.error_val
+        );
+    }
+
+    #[test]
+    fn as_cli_tool_test_graph_table_2() {
+        //Given
+        let args = vec![
+            "rmr".to_owned(),
+            "-t".to_owned(),
+            "y=x".to_owned(),
+            "-2".to_owned(),
+            "-3".to_owned(),
+            "1".to_owned(),
+        ];
+        let mut test_logger = get_test_logger();
+
+        //When
+        as_cli_tool(&args, &mut test_logger);
+
+        //Then
+        assert!(&test_logger.val.is_empty());
+        assert_eq!(
+            "x min `-2` must be less than x max `-3`",
+            test_logger.error_val
+        );
+    }
+
+    #[test]
+    fn as_cli_tool_test_table_error_3() {
+        //Given
+        let args = vec![
+            "rmr".to_owned(),
+            "-t".to_owned(),
+            "y=q".to_owned(),
+            "-2".to_owned(),
+            "5".to_owned(),
+            "1".to_owned(),
+        ];
+        let mut test_logger = get_test_logger();
+
+        //When
+        as_cli_tool(&args, &mut test_logger);
+
+        //Then
+        assert!(&test_logger.val.is_empty());
+        assert_eq!("Invalid input at character 2", test_logger.error_val);
+    }
+
+    #[test]
+    fn as_cli_tool_test_table_error_4() {
+        //Given
+        let args = vec![
+            "rmr".to_owned(),
+            "--table".to_owned(),
+            "y=q".to_owned(),
+            "-2".to_owned(),
+            "a".to_owned(),
+            "1".to_owned(),
+        ];
+        let mut test_logger = get_test_logger();
+
+        //When
+        as_cli_tool(&args, &mut test_logger);
+
+        //Then
+        assert!(&test_logger.val.is_empty());
+        assert_eq!(
+            "x-min: `-2`, x-max: `a` and step_size: `1` must all be valid numbers",
+            test_logger.error_val
+        );
+    }
 }

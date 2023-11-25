@@ -29,7 +29,7 @@ pub(crate) fn make_table_string(points: Vec<Point>) -> String {
             "{}{}{:<4} {} {:<6}{}{}",
             VERTICAL_BAR,
             UNDERLINE_START,
-            p.x,
+            ((p.x * 100.0).round() / 100.0),
             VERTICAL_BAR,
             ((p.y * 100.0).round() / 100.0),
             UNDERLINE_END,

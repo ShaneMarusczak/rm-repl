@@ -4,6 +4,7 @@ pub(crate) trait Logger {
 }
 
 pub(crate) struct StdoutLogger;
+
 pub(crate) struct TestLogger {
     pub(crate) val: String,
     pub(crate) error_val: String,

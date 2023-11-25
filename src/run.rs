@@ -1,4 +1,9 @@
-use crate::{commands, evaluate, graphing, inputs, logger::Logger, repl, variables};
+use rusty_maths::equation_analyzer::calculator::plot;
+
+use crate::{
+    commands, evaluate, graphing, inputs, logger::Logger, repl, string_maker::make_table_string,
+    variables,
+};
 
 pub(crate) fn as_repl(l: &mut impl Logger) {
     use std::collections::HashMap;
@@ -61,6 +66,32 @@ pub(crate) fn as_cli_tool(args: &Vec<String>, l: &mut impl Logger) {
                 l.eprint(&format!(
                     "x-min: `{}` and x-max: `{}` must both be valid numbers",
                     args[3], args[4]
+                ));
+            }
+        }
+        "-t" | "--table" => {
+            if args.len() != 6 {
+                l.eprint("Usage: rmr -t [equation] [x-min] [x-max] [step_size]");
+            } else if let (Ok(x_min), Ok(x_max), Ok(step_size)) =
+                (args[3].parse(), args[4].parse(), args[5].parse())
+            {
+                if x_min < x_max {
+                    let points = plot(&args[2], x_min, x_max, step_size);
+                    if let Ok(points) = points {
+                        let t = make_table_string(points);
+                        l.print(&t);
+                    } else {
+                        l.eprint(&points.unwrap_err());
+                    }
+                } else {
+                    l.eprint(&format!(
+                        "x min `{x_min}` must be less than x max `{x_max}`"
+                    ));
+                }
+            } else {
+                l.eprint(&format!(
+                    "x-min: `{}`, x-max: `{}` and step_size: `{}` must all be valid numbers",
+                    args[3], args[4], args[5]
                 ));
             }
         }

@@ -19,8 +19,6 @@ use crate::logger::StdoutLogger;
 
 //TODO: write a proper readme
 
-//TODO: -t in cli prints table
-
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let l = &mut StdoutLogger;
