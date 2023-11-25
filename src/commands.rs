@@ -8,7 +8,6 @@ use crate::logger::Logger;
 use crate::{
     graphing::graph,
     inputs::{get_g_inputs, get_matrix_input, get_numerical_input, get_text_input},
-    repl::{PreviousAnswer, Repl},
     string_maker::make_table_string,
 };
 
@@ -16,8 +15,10 @@ use crossterm::event::{read, Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{cursor, ExecutableCommand};
 
-pub(crate) fn run_command(line: &str, repl: &mut Repl, l: &mut impl Logger) {
+pub(crate) fn run_command(line: &str, l: &mut impl Logger) {
     match line {
+        //TODO: scrollable graph (sg), like iteractive graph but you move a point along the graph instead of moving the graph
+        //left right moves the point, up down switches graphs (if multiple)
         "t" | "table" => t(l),
         "g" | "graph" => g(l),
         "ag" | "animated graph" => ag(l),
@@ -25,7 +26,6 @@ pub(crate) fn run_command(line: &str, repl: &mut Repl, l: &mut impl Logger) {
         "la" | "linear algebra" => la(l),
         _ => {
             l.eprint(&format!("invalid command {line}"));
-            repl.invalidate_prev_answer();
         }
     }
 }

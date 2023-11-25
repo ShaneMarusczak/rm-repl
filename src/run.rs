@@ -26,7 +26,7 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
         } else if let Some(stripped) = line.strip_prefix(':') {
             match stripped {
                 "q" | "quit" => break,
-                _ => commands::run_command(stripped, &mut repl, l),
+                _ => commands::run_command(stripped, l),
             }
         } else if !repl.previous_answer_valid && line.contains("ans") {
             l.eprint("invalid use of 'ans'");

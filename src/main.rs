@@ -14,9 +14,6 @@ mod variables;
 
 use crate::logger::StdoutLogger;
 
-//TODO: scrollable graph, like iteractive graph but you move a point along the graph instead of moving the graph
-//left right moves the point, up down switches graphs (if multiple)
-
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let l = &mut StdoutLogger;

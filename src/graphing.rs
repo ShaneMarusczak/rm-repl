@@ -11,6 +11,9 @@ type CharMatrix = Vec<Vec<char>>;
 
 const Y_MIN: f32 = -7f32;
 const Y_MAX: f32 = 7f32;
+
+//TODO: make this dynamic to the current terminal size
+//https://crates.io/crates/term_size
 const HEIGHT: usize = 120;
 const WIDTH: usize = 240;
 

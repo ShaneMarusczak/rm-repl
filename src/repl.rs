@@ -7,14 +7,14 @@ pub(crate) struct Repl {
 }
 
 pub(crate) trait PreviousAnswer {
-    fn previous_answer(&mut self, value: &f32, valid: bool);
+    fn set_previous_answer(&mut self, value: &f32);
     fn invalidate_prev_answer(&mut self);
 }
 
 impl PreviousAnswer for Repl {
-    fn previous_answer(&mut self, value: &f32, valid: bool) {
+    fn set_previous_answer(&mut self, value: &f32) {
         self.previous_answer = *value;
-        self.previous_answer_valid = valid;
+        self.previous_answer_valid = true;
     }
     fn invalidate_prev_answer(&mut self) {
         self.previous_answer = 0.0;
