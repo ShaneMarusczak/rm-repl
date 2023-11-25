@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use rusty_maths::equation_analyzer::calculator::plot;
 
 use crate::{
@@ -38,10 +40,10 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
 }
 
 pub(crate) fn as_cli_tool(args: &Vec<String>, l: &mut impl Logger) {
-    if args.len() == 2 {
-        evaluate::simple_evaluate(&args[1], l);
-    } else if args.len() > 2 {
-        match args[1].as_str() {
+    match args.len().cmp(&2) {
+        Ordering::Equal => evaluate::simple_evaluate(&args[1], l),
+
+        Ordering::Greater => match args[1].as_str() {
             "-g" | "--graph" => {
                 if args.len() != 5 {
                     l.eprint("Usage: rmr -g [equation] [x-min] [x-max]");
@@ -92,8 +94,8 @@ pub(crate) fn as_cli_tool(args: &Vec<String>, l: &mut impl Logger) {
                 }
             }
             _ => l.eprint("invalid use of rmr"),
-        }
-    } else {
-        l.eprint("Usage: rmr [expression]")
+        },
+
+        Ordering::Less => l.eprint("Usage: rmr [expression]"),
     }
 }
