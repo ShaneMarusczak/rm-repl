@@ -38,63 +38,62 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
 }
 
 pub(crate) fn as_cli_tool(args: &Vec<String>, l: &mut impl Logger) {
-    match args[1].as_str() {
-        "-e" | "--evaluate" => {
-            if args.len() != 3 {
-                l.eprint("Usage: rmr -e [expression]");
-            } else {
-                evaluate::simple_evaluate(&args[2], l);
-            }
-        }
-        "-g" | "--graph" => {
-            if args.len() != 5 {
-                l.eprint("Usage: rmr -g [equation] [x-min] [x-max]");
-            } else if let (Ok(x_min), Ok(x_max)) = (args[3].parse(), args[4].parse()) {
-                if x_min < x_max {
-                    let g = graphing::graph(&args[2], x_min, x_max);
-                    if let Ok(g) = g {
-                        l.print(&g);
+    if args.len() == 2 {
+        evaluate::simple_evaluate(&args[1], l);
+    } else if args.len() > 2 {
+        match args[1].as_str() {
+            "-g" | "--graph" => {
+                if args.len() != 5 {
+                    l.eprint("Usage: rmr -g [equation] [x-min] [x-max]");
+                } else if let (Ok(x_min), Ok(x_max)) = (args[3].parse(), args[4].parse()) {
+                    if x_min < x_max {
+                        let g = graphing::graph(&args[2], x_min, x_max);
+                        if let Ok(g) = g {
+                            l.print(&g);
+                        } else {
+                            l.eprint(&g.unwrap_err());
+                        }
                     } else {
-                        l.eprint(&g.unwrap_err());
+                        l.eprint(&format!(
+                            "x min `{x_min}` must be less than x max `{x_max}`"
+                        ));
                     }
                 } else {
                     l.eprint(&format!(
-                        "x min `{x_min}` must be less than x max `{x_max}`"
+                        "x-min: `{}` and x-max: `{}` must both be valid numbers",
+                        args[3], args[4]
                     ));
                 }
-            } else {
-                l.eprint(&format!(
-                    "x-min: `{}` and x-max: `{}` must both be valid numbers",
-                    args[3], args[4]
-                ));
             }
-        }
-        "-t" | "--table" => {
-            if args.len() != 6 {
-                l.eprint("Usage: rmr -t [equation] [x-min] [x-max] [step_size]");
-            } else if let (Ok(x_min), Ok(x_max), Ok(step_size)) =
-                (args[3].parse(), args[4].parse(), args[5].parse())
-            {
-                if x_min < x_max {
-                    let points = plot(&args[2], x_min, x_max, step_size);
-                    if let Ok(points) = points {
-                        let t = make_table_string(points);
-                        l.print(&t);
+            "-t" | "--table" => {
+                if args.len() != 6 {
+                    l.eprint("Usage: rmr -t [equation] [x-min] [x-max] [step_size]");
+                } else if let (Ok(x_min), Ok(x_max), Ok(step_size)) =
+                    (args[3].parse(), args[4].parse(), args[5].parse())
+                {
+                    if x_min < x_max {
+                        let points = plot(&args[2], x_min, x_max, step_size);
+                        if let Ok(points) = points {
+                            let t = make_table_string(points);
+                            l.print(&t);
+                        } else {
+                            l.eprint(&points.unwrap_err());
+                        }
                     } else {
-                        l.eprint(&points.unwrap_err());
+                        l.eprint(&format!(
+                            "x min `{x_min}` must be less than x max `{x_max}`"
+                        ));
                     }
                 } else {
                     l.eprint(&format!(
-                        "x min `{x_min}` must be less than x max `{x_max}`"
+                        "x-min: `{}`, x-max: `{}` and step_size: `{}` must all be valid numbers",
+                        args[3], args[4], args[5]
                     ));
                 }
-            } else {
-                l.eprint(&format!(
-                    "x-min: `{}`, x-max: `{}` and step_size: `{}` must all be valid numbers",
-                    args[3], args[4], args[5]
-                ));
             }
+            _ => l.eprint("invalid use of rmr"),
         }
-        _ => l.eprint("invalid use of rmr"),
+    } else {
+        l.eprint("Usage: rmr [expression]")
     }
 }

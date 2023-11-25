@@ -25,7 +25,7 @@ pub(crate) fn run_command(line: &str, repl: &mut Repl, l: &mut impl Logger) {
         "la" | "linear algebra" => la(l),
         _ => {
             l.eprint(&format!("invalid command {line}"));
-            repl.previous_answer(0.0, false);
+            repl.invalidate_prev_answer();
         }
     }
 }

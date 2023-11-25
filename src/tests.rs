@@ -61,7 +61,7 @@ mod rmr_tests {
         evaluate(line, &mut repl, &mut test_logger);
 
         //Then
-        assert_eq!(test_logger.val, "-7.00");
+        assert_eq!(test_logger.val, "-7");
         assert!(test_logger.error_val.is_empty());
         assert!(repl.previous_answer_valid);
         assert_eq!(repl.previous_answer, -7f32);
@@ -93,7 +93,7 @@ mod rmr_tests {
         simple_evaluate(line, &mut test_logger);
 
         //Then
-        assert_eq!(test_logger.val, "3.00");
+        assert_eq!(test_logger.val, "3");
         assert!(test_logger.error_val.is_empty());
     }
 
@@ -187,7 +187,7 @@ mod rmr_tests {
         //Then
         assert!(repl.previous_answer_valid);
         assert_eq!(repl.previous_answer, 2.0);
-        assert_eq!(test_logger.val, "2.00");
+        assert_eq!(test_logger.val, "2");
         assert!(test_logger.error_val.is_empty());
 
         //When
@@ -201,28 +201,28 @@ mod rmr_tests {
         //Then
         assert!(repl.previous_answer_valid);
         assert_eq!(repl.previous_answer, 3.0);
-        assert_eq!(test_logger.val, "3.00");
+        assert_eq!(test_logger.val, "3");
         assert!(test_logger.error_val.is_empty());
     }
 
     #[test]
     fn as_cli_tool_test_eval() {
         //Given
-        let args = vec!["rmr".to_owned(), "-e".to_owned(), "3-sqrt(4)".to_owned()];
+        let args = vec!["rmr".to_owned(), "3-sqrt(4)".to_owned()];
         let mut test_logger = get_test_logger();
 
         //When
         as_cli_tool(&args, &mut test_logger);
 
         //Then
-        assert_eq!(test_logger.val, "1.00");
+        assert_eq!(test_logger.val, "1");
         assert!(test_logger.error_val.is_empty());
     }
 
     #[test]
     fn as_cli_tool_test_eval_error() {
         //Given
-        let args = vec!["rmr".to_owned(), "-e".to_owned(), "3-sqrt(4".to_owned()];
+        let args = vec!["rmr".to_owned(), "3-sqrt(4".to_owned()];
         let mut test_logger = get_test_logger();
 
         //When
@@ -236,7 +236,7 @@ mod rmr_tests {
     #[test]
     fn as_cli_tool_test_eval_error_2() {
         //Given
-        let args = vec!["rmr".to_owned(), "--evaluate".to_owned()];
+        let args = vec!["rmr".to_owned()];
         let mut test_logger = get_test_logger();
 
         //When
@@ -244,7 +244,7 @@ mod rmr_tests {
 
         //Then
         assert!(test_logger.val.is_empty());
-        assert_eq!(test_logger.error_val, "Usage: rmr -e [expression]");
+        assert_eq!(test_logger.error_val, "Usage: rmr [expression]");
     }
 
     #[test]
