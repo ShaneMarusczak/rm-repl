@@ -5,6 +5,9 @@ use rusty_maths::{
     utilities::abs_f32,
 };
 
+use std::sync::Arc;
+use std::thread;
+
 type CellMatrix = Vec<Vec<Cell>>;
 type PointMatrix = Vec<Vec<Point>>;
 type CharMatrix = Vec<Vec<char>>;
@@ -99,9 +102,6 @@ fn get_normalized_points(
     points: &Vec<Point>,
     sampling_factor: f32,
 ) -> Vec<NormalizedPoint> {
-    use std::sync::Arc;
-    use std::thread;
-
     let y_step = (y_max - y_min) / height as f32;
 
     let y_values: Arc<Vec<f32>> = Arc::new(
@@ -129,15 +129,7 @@ fn get_normalized_points(
             for (i, point) in chunk.iter().enumerate() {
                 let x = (((i + chunk_offset) as f32) * inverse_samp_factor) as usize;
 
-                let mut min_dif = f32::MAX;
-                let mut y = 0;
-                for (idx, p) in y_values.iter().enumerate() {
-                    let dif = (point.y - p).abs();
-                    if dif < min_dif {
-                        min_dif = dif;
-                        y = idx;
-                    }
-                }
+                let y = binary_search(Arc::clone(&y_values), point.y, 0, y_values.len());
 
                 thread_results.push(NormalizedPoint {
                     x,
@@ -155,6 +147,36 @@ fn get_normalized_points(
         normalized_points.append(&mut thread.join().unwrap());
     }
     normalized_points
+}
+
+///assumes nums is in ascending order
+fn binary_search(nums: Arc<Vec<f32>>, num: f32, start: usize, end: usize) -> usize {
+    if nums[0] >= num {
+        return 0;
+    }
+    if nums[nums.len() - 1] <= num {
+        return nums.len() - 1;
+    }
+
+    let mut start = start;
+    let mut end = end;
+    while start <= end {
+        let mut mid = (start + end) / 2;
+        if mid == 0 {
+            mid = 1;
+        }
+        let mid_minus_one = mid - 1;
+        if num >= nums[mid_minus_one] && num <= nums[mid] {
+            let check = (num - nums[mid_minus_one]).abs() < (num - nums[mid]);
+            let rv = if check { mid_minus_one } else { mid };
+            return rv;
+        } else if nums[mid] < num {
+            start = mid + 1;
+        } else {
+            end = mid_minus_one;
+        }
+    }
+    unreachable!()
 }
 
 ///converts a matrix of 1s and 0s to a matrix of braille characters with dots at the 1s and blanks at the 0s
