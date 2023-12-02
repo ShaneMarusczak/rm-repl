@@ -129,7 +129,7 @@ fn get_normalized_points(
             for (i, point) in chunk.iter().enumerate() {
                 let x = (((i + chunk_offset) as f32) * inverse_samp_factor) as usize;
 
-                let y = binary_search(Arc::clone(&y_values), point.y, 0, y_values.len());
+                let y = binary_search(Arc::clone(&y_values), point.y);
 
                 thread_results.push(NormalizedPoint {
                     x,
@@ -150,7 +150,7 @@ fn get_normalized_points(
 }
 
 ///assumes nums is in ascending order
-fn binary_search(nums: Arc<Vec<f32>>, num: f32, start: usize, end: usize) -> usize {
+fn binary_search(nums: Arc<Vec<f32>>, num: f32) -> usize {
     if nums[0] >= num {
         return 0;
     }
@@ -158,18 +158,22 @@ fn binary_search(nums: Arc<Vec<f32>>, num: f32, start: usize, end: usize) -> usi
         return nums.len() - 1;
     }
 
-    let mut start = start;
-    let mut end = end;
+    let mut start = 0;
+    let mut end = nums.len();
+
     while start <= end {
-        let mut mid = (start + end) / 2;
+        let mut mid = start + (end - start) / 2;
+
+        // usize math pushes mid to zero when trying to compare index 0 and 1
         if mid == 0 {
             mid = 1;
         }
+
         let mid_minus_one = mid - 1;
+
         if num >= nums[mid_minus_one] && num <= nums[mid] {
             let check = (num - nums[mid_minus_one]).abs() < (num - nums[mid]);
-            let rv = if check { mid_minus_one } else { mid };
-            return rv;
+            return if check { mid_minus_one } else { mid };
         } else if nums[mid] < num {
             start = mid + 1;
         } else {
