@@ -57,7 +57,23 @@ pub(crate) fn graph(
         if y_max > master_y_max {
             master_y_max = y_max;
         }
-        points_collection.push(points);
+
+        //Keep NaN from sneaking in
+        if points.iter().any(|p| p.x.is_nan() || p.y.is_nan()) {
+            let p = points
+                .iter()
+                .map(|p| {
+                    return if p.x.is_nan() || p.y.is_nan() {
+                        Point::new(0.0, 0.0)
+                    } else {
+                        Point::new(p.x, p.y)
+                    };
+                })
+                .collect();
+            points_collection.push(p);
+        } else {
+            points_collection.push(points);
+        }
     }
 
     master_y_max += 0.5;
@@ -120,7 +136,7 @@ fn check_add_tick_marks(
         80
     } else if width > 75 && width < 151 {
         160
-    } else if width > 151 && width < 301 {
+    } else if width > 150 && width < 301 {
         300
     } else {
         400
@@ -194,7 +210,7 @@ fn get_normalized_points(
             for (i, point) in chunk.iter().enumerate() {
                 let x = (((i + chunk_offset) as f32) * inverse_samp_factor) as usize;
 
-                let y = binary_search(Arc::clone(&y_values), point.y);
+                let y = binary_search(&y_values, point.y);
 
                 thread_results.push(NormalizedPoint {
                     x,
@@ -215,7 +231,7 @@ fn get_normalized_points(
 }
 
 ///assumes nums is in ascending order
-fn binary_search(nums: Arc<Vec<f32>>, num: f32) -> usize {
+fn binary_search(nums: &Vec<f32>, num: f32) -> usize {
     if nums[0] >= num {
         return 0;
     }
@@ -253,11 +269,10 @@ fn binary_search(nums: Arc<Vec<f32>>, num: f32) -> usize {
 ///
 /// ⣿
 fn get_braille(height: usize, width: usize, matrix: &mut CellMatrix) -> CharMatrix {
-    let mut chars: CharMatrix = Vec::with_capacity(height / 4);
+    let row_char_count = height / 4;
+    let col_char_count = width / 2;
 
-    for _ in 0..(height / 4) {
-        chars.push(Vec::with_capacity(width / 2));
-    }
+    let mut chars: CharMatrix = vec![Vec::with_capacity(col_char_count); row_char_count];
 
     for row in 0..matrix.len() {
         for col in 0..matrix[row].len() {
@@ -267,17 +282,21 @@ fn get_braille(height: usize, width: usize, matrix: &mut CellMatrix) -> CharMatr
             if cell.visited {
                 continue;
             }
-
-            //represents a single braille char
-            let mut char: Vec<u8> = Vec::with_capacity(8);
+            let mut braille_char_bits = 0u8;
+            let mut shift = 0u8;
 
             //1-6 braille dots
             for dx in 0..=1 {
                 for dy in 0..=2 {
                     if let Some(row_data) = matrix.get_mut(row + dy) {
                         if let Some(cell_data) = row_data.get_mut(col + dx) {
-                            char.push(cell_data.value as u8);
+                            //00000000 |= 00000001 (shifted true by 0) -> 00000001
+                            //00000001 |= 00000010 (shifted true by 1) -> 00000011
+                            //00000011 |= 00000000 (shifted false by 2) -> 00000011
+                            //etc..
+                            braille_char_bits |= (cell_data.value as u8) << shift;
                             cell_data.visited = true;
+                            shift += 1;
                         }
                     }
                 }
@@ -288,26 +307,16 @@ fn get_braille(height: usize, width: usize, matrix: &mut CellMatrix) -> CharMatr
                 let dy = 3;
                 if let Some(row_data) = matrix.get_mut(row + dy) {
                     if let Some(cell_data) = row_data.get_mut(col + dx) {
-                        char.push(cell_data.value as u8);
+                        braille_char_bits |= (cell_data.value as u8) << shift;
                         cell_data.visited = true;
+                        shift += 1;
                     }
                 }
             }
 
-            //each braille char contains 4 rows
             if (row / 4) < chars.len() {
-                //converts array of 0 and 1 to braille char
-                let binary_string: String =
-                    char.iter().rev().map(|b| b.to_string()).collect::<String>();
-
-                let decimal_number: u8 = u8::from_str_radix(&binary_string, 2).unwrap();
-
-                let code_point: u32 =
-                    u32::from_str_radix(&format!("28{:02x}", decimal_number), 16).unwrap();
-
-                let character: char = char::from_u32(code_point).unwrap();
-
-                chars[row / 4].push(character);
+                let braille_char = '⠀' as u32 + braille_char_bits as u32;
+                chars[row / 4].push(std::char::from_u32(braille_char).unwrap());
             }
         }
     }
@@ -336,24 +345,12 @@ fn check_add_y_axis(x_min: f32, x_max: f32, width: usize, matrix: &mut CellMatri
     }
 }
 
-pub(crate) fn get_y_min(points: &Vec<Point>) -> f32 {
-    let mut y_min: f32 = f32::MAX;
-    for point in points {
-        if point.y < y_min {
-            y_min = point.y;
-        }
-    }
-    y_min
+fn get_y_min(points: &[Point]) -> f32 {
+    points.iter().map(|point| point.y).fold(f32::MAX, f32::min)
 }
 
-pub(crate) fn get_y_max(points: &Vec<Point>) -> f32 {
-    let mut y_max: f32 = f32::MIN;
-    for point in points {
-        if point.y > y_max {
-            y_max = point.y;
-        }
-    }
-    y_max
+fn get_y_max(points: &[Point]) -> f32 {
+    points.iter().map(|point| point.y).fold(f32::MIN, f32::max)
 }
 
 fn make_cell_matrix(vec_count: usize, vec_length: usize) -> CellMatrix {

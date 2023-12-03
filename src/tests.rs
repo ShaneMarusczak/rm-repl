@@ -6,7 +6,7 @@ mod rmr_tests {
 
     use crate::{
         evaluate::{evaluate, simple_evaluate},
-        graphing::{get_y_max, get_y_min, graph},
+        graphing::graph,
         logger::TestLogger,
         repl::Repl,
         run::as_cli_tool,
@@ -402,38 +402,6 @@ mod rmr_tests {
         //Then
         assert!(g.is_ok());
         assert!(is_graph_string(&g.unwrap()));
-    }
-
-    #[test]
-    fn y_min_test() {
-        //Given
-        let points = vec![
-            Point::new(1.0, 1.0),
-            Point::new(2.0, 2.0),
-            Point::new(3.0, 3.0),
-        ];
-
-        //When
-        let min = get_y_min(&points);
-
-        //Then
-        assert_eq!(1.0, min);
-    }
-
-    #[test]
-    fn y_max_test() {
-        //Given
-        let points = vec![
-            Point::new(1.0, 1.0),
-            Point::new(2.0, 2.0),
-            Point::new(3.0, 3.0),
-        ];
-
-        //When
-        let max = get_y_max(&points);
-
-        //Then
-        assert_eq!(3.0, max);
     }
 
     #[test]
