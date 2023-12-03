@@ -65,20 +65,15 @@ pub(crate) fn graph(
     master_y_max += 0.5;
     master_y_min -= 0.5;
 
-    //make buckets of tick mark couts allowed for each size
-    //like width 300 gets n tick marks
-    //width 150 gets n/2
-    if master_y_max - master_y_min < 15.5 && x_max - x_min < 15.5 {
-        add_tick_marks(
-            &mut matrix,
-            x_min,
-            x_max,
-            master_y_min,
-            master_y_max,
-            go.height,
-            go.width,
-        );
-    }
+    check_add_tick_marks(
+        &mut matrix,
+        x_min,
+        x_max,
+        master_y_min,
+        master_y_max,
+        go.height,
+        go.width,
+    );
 
     for points in points_collection {
         for np in get_normalized_points(
@@ -112,7 +107,7 @@ pub(crate) fn graph(
     ))
 }
 
-fn add_tick_marks(
+fn check_add_tick_marks(
     matrix: &mut CellMatrix,
     x_min: f32,
     x_max: f32,
@@ -121,20 +116,43 @@ fn add_tick_marks(
     height: usize,
     width: usize,
 ) {
+    let max = if width < 76 {
+        80
+    } else if width > 75 && width < 151 {
+        160
+    } else if width > 151 && width < 301 {
+        300
+    } else {
+        400
+    };
+
     let x_range = x_min.ceil() as isize..=x_max.floor() as isize;
-    let y_range = y_min.ceil() as isize..=y_max.floor() as isize;
+
+    let y_start = y_min.ceil() as isize;
+    let y_end = y_max.floor() as isize;
 
     let x_scale = (x_max - x_min) / (width as f32);
     let y_scale = (y_max - y_min) / (height as f32);
 
+    let mut points: Vec<(usize, usize)> = vec![];
     for x in x_range {
         let x_normalized = ((x as f32 - x_min) / x_scale).round() as usize;
 
-        for y in y_range.clone() {
+        for y in y_start..=y_end {
             let y_normalized = ((y as f32 - y_min) / y_scale).round() as usize;
 
             if let Some(row) = matrix.get_mut(y_normalized) {
-                if let Some(cell) = row.get_mut(x_normalized) {
+                if row.get_mut(x_normalized).is_some() {
+                    points.push((x_normalized, y_normalized));
+                }
+            }
+        }
+    }
+
+    if points.len() <= max {
+        for (x, y) in points {
+            if let Some(row) = matrix.get_mut(y) {
+                if let Some(cell) = row.get_mut(x) {
                     cell.value = true;
                 }
             }

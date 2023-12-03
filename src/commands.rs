@@ -27,7 +27,7 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
         //TODO: scrollable graph (sg), like iteractive graph but you move a point along the graph instead of moving the graph
         //left right moves the point, up down switches graphs (if multiple)
 
-        //TODO: add tutor option that starts a chat session with chat gpt
+        //TODO: add math tutor (mt) option that starts a chat session with chat gpt
         "t" | "table" => t(l),
         "g" | "graph" => g(l, &go),
         "go" | "graph options" => gos(l, repl),
