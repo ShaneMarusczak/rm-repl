@@ -11,6 +11,7 @@ mod rmr_tests {
         repl::Repl,
         run::as_cli_tool,
         string_maker::make_table_string,
+        structs::GraphOptions,
         variables::{handle_var, is_variable},
     };
 
@@ -19,6 +20,10 @@ mod rmr_tests {
             previous_answer: 0.0,
             previous_answer_valid: false,
             variables: HashMap::new(),
+            y_max: 7.,
+            y_min: -7.,
+            width: 240,
+            height: 120,
         }
     }
 
@@ -26,6 +31,15 @@ mod rmr_tests {
         TestLogger {
             val: String::new(),
             error_val: String::new(),
+        }
+    }
+
+    fn get_graph_options() -> GraphOptions {
+        GraphOptions {
+            y_max: 7.,
+            y_min: -7.,
+            width: 240,
+            height: 120,
         }
     }
 
@@ -378,12 +392,14 @@ mod rmr_tests {
     #[test]
     fn graph_test() {
         //Given
-        let eq_str = "y =sin(x  )";
+        let eq_str = "y =tan(x  )";
         let x_min = -5f32;
         let x_max = 5f32;
 
+        let go = get_graph_options();
+
         //When
-        let g = graph(eq_str, x_min, x_max);
+        let g = graph(eq_str, x_min, x_max, &go);
 
         //Then
         assert!(g.is_ok());

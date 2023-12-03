@@ -3,11 +3,12 @@ use rusty_maths::{
     linear_algebra::{vector_mean, vector_sum},
 };
 
-use crate::logger::Logger;
+use crate::{logger::Logger, structs::GraphOptions};
 
 use crate::{
     graphing::graph,
-    inputs::{get_g_inputs, get_matrix_input, get_numerical_input, get_text_input},
+    inputs::{get_g_inputs, get_go_inputs, get_matrix_input, get_numerical_input, get_text_input},
+    repl::Repl,
     string_maker::make_table_string,
 };
 
@@ -15,19 +16,36 @@ use crossterm::event::{read, Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{cursor, ExecutableCommand};
 
-pub(crate) fn run_command(line: &str, l: &mut impl Logger) {
+pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
+    let go = GraphOptions {
+        y_min: repl.y_min,
+        y_max: repl.y_max,
+        width: repl.width,
+        height: repl.height,
+    };
     match line {
         //TODO: scrollable graph (sg), like iteractive graph but you move a point along the graph instead of moving the graph
         //left right moves the point, up down switches graphs (if multiple)
+
+        //TODO: add tutor option that starts a chat session with chat gpt
         "t" | "table" => t(l),
-        "g" | "graph" => g(l),
-        "ag" | "animated graph" => ag(l),
-        "ig" | "interactive graph" => ig(l),
+        "g" | "graph" => g(l, &go),
+        "go" | "graph options" => gos(l, repl),
+        "ag" | "animated graph" => ag(l, &go),
+        "ig" | "interactive graph" => ig(l, &go),
         "la" | "linear algebra" => la(l),
         _ => {
             l.eprint(&format!("invalid command {line}"));
         }
     }
+}
+
+fn gos(l: &mut impl Logger, repl: &mut Repl) {
+    let (y_min, y_max, width, height) = get_go_inputs(l);
+    repl.y_min = y_min;
+    repl.y_max = y_max;
+    repl.height = height;
+    repl.width = width;
 }
 
 fn t(l: &mut impl Logger) {
@@ -43,9 +61,9 @@ fn t(l: &mut impl Logger) {
     }
 }
 
-fn g(l: &mut impl Logger) {
+fn g(l: &mut impl Logger, go: &GraphOptions) {
     let (eq, x_min, x_max) = get_g_inputs(l);
-    let g = graph(&eq, x_min, x_max);
+    let g = graph(&eq, x_min, x_max, go);
 
     if let Ok(g) = g {
         l.print(&g);
@@ -54,11 +72,11 @@ fn g(l: &mut impl Logger) {
     }
 }
 
-fn ag(l: &mut impl Logger) {
+fn ag(l: &mut impl Logger, go: &GraphOptions) {
     let mut stdout = std::io::stdout();
 
     let (eq, x_min, x_max) = get_g_inputs(l);
-    let g = graph(&eq, x_min, x_max);
+    let g = graph(&eq, x_min, x_max, go);
 
     if let Ok(g) = g {
         l.print(&g);
@@ -70,7 +88,7 @@ fn ag(l: &mut impl Logger) {
             stdout
                 .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                 .unwrap();
-            let g = graph(&eq, x_min - n as f32, x_max + n as f32).unwrap();
+            let g = graph(&eq, x_min - n as f32, x_max + n as f32, go).unwrap();
 
             l.print(&g);
         }
@@ -79,11 +97,11 @@ fn ag(l: &mut impl Logger) {
     }
 }
 
-fn ig(l: &mut impl Logger) {
+fn ig(l: &mut impl Logger, go: &GraphOptions) {
     let mut stdout = std::io::stdout();
 
     let (eq, mut x_min, mut x_max) = get_g_inputs(l);
-    let g = graph(&eq, x_min, x_max);
+    let g = graph(&eq, x_min, x_max, go);
 
     if let Ok(g) = g {
         l.print(&g);
@@ -105,7 +123,7 @@ fn ig(l: &mut impl Logger) {
                     stdout
                         .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                         .unwrap();
-                    let g = graph(&eq, x_min, x_max).unwrap();
+                    let g = graph(&eq, x_min, x_max, go).unwrap();
 
                     l.print(&g);
                     enable_raw_mode().unwrap();
@@ -123,7 +141,7 @@ fn ig(l: &mut impl Logger) {
                     stdout
                         .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                         .unwrap();
-                    let g = graph(&eq, x_min, x_max).unwrap();
+                    let g = graph(&eq, x_min, x_max, go).unwrap();
 
                     l.print(&g);
                     enable_raw_mode().unwrap();

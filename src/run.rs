@@ -4,7 +4,7 @@ use rusty_maths::equation_analyzer::calculator::plot;
 
 use crate::{
     commands, evaluate, graphing, inputs, logger::Logger, repl, string_maker::make_table_string,
-    variables,
+    structs::GraphOptions, variables,
 };
 
 pub(crate) fn as_repl(l: &mut impl Logger) {
@@ -16,6 +16,10 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
         previous_answer: 0.0,
         previous_answer_valid: false,
         variables: HashMap::new(),
+        y_max: 7.,
+        y_min: -7.,
+        width: 140,
+        height: 70,
     };
 
     loop {
@@ -26,7 +30,7 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
         } else if let Some(stripped) = line.strip_prefix(':') {
             match stripped {
                 "q" | "quit" => break,
-                _ => commands::run_command(stripped, l),
+                _ => commands::run_command(stripped, l, &mut repl),
             }
         } else if !repl.previous_answer_valid && line.contains("ans") {
             l.eprint("invalid use of 'ans'");
@@ -49,7 +53,13 @@ pub(crate) fn as_cli_tool(args: &Vec<String>, l: &mut impl Logger) {
                     l.eprint("Usage: rmr -g [equation] [x-min] [x-max]");
                 } else if let (Ok(x_min), Ok(x_max)) = (args[3].parse(), args[4].parse()) {
                     if x_min < x_max {
-                        let g = graphing::graph(&args[2], x_min, x_max);
+                        let go = GraphOptions {
+                            y_min: -7.,
+                            y_max: 7.,
+                            width: 200,
+                            height: 100,
+                        };
+                        let g = graphing::graph(&args[2], x_min, x_max, &go);
                         if let Ok(g) = g {
                             l.print(&g);
                         } else {

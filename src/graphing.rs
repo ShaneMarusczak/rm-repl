@@ -1,5 +1,5 @@
 use crate::string_maker::make_graph_string;
-use crate::structs::{Cell, NormalizedPoint};
+use crate::structs::{Cell, GraphOptions, NormalizedPoint};
 use rusty_maths::{
     equation_analyzer::{calculator::plot, eq_data_builder::Point},
     utilities::abs_f32,
@@ -12,29 +12,26 @@ type CellMatrix = Vec<Vec<Cell>>;
 type PointMatrix = Vec<Vec<Point>>;
 type CharMatrix = Vec<Vec<char>>;
 
-const Y_MIN: f32 = -7f32;
-const Y_MAX: f32 = 7f32;
-
-//TODO: make this dynamic to the current terminal size
-//https://crates.io/crates/term_size
-const HEIGHT: usize = 120;
-const WIDTH: usize = 240;
-
-pub(crate) fn graph(eq_str: &str, x_min: f32, x_max: f32) -> Result<String, String> {
-    let mut y_min: f32 = Y_MIN;
-    let mut y_max: f32 = Y_MAX;
+pub(crate) fn graph(
+    eq_str: &str,
+    x_min: f32,
+    x_max: f32,
+    go: &GraphOptions,
+) -> Result<String, String> {
+    let mut y_min: f32 = go.y_min;
+    let mut y_max: f32 = go.y_max;
 
     let mut master_y_min: f32 = f32::MAX;
     let mut master_y_max: f32 = f32::MIN;
 
     //still fiddling trying to find the correct value
-    let sampling_factor: f32 = (WIDTH / 16) as f32;
+    let sampling_factor: f32 = (go.width / 16) as f32;
 
-    let x_step: f32 = (x_max - x_min) / ((WIDTH as f32) * sampling_factor);
+    let x_step: f32 = (x_max - x_min) / ((go.width as f32) * sampling_factor);
 
     let eqs: Vec<&str> = eq_str.split('|').collect();
 
-    let mut matrix: CellMatrix = make_cell_matrix(HEIGHT + 1, WIDTH + 1);
+    let mut matrix: CellMatrix = make_cell_matrix(go.height + 1, go.width + 1);
 
     let mut points_collection: PointMatrix = Vec::with_capacity(eqs.len());
 
@@ -68,23 +65,40 @@ pub(crate) fn graph(eq_str: &str, x_min: f32, x_max: f32) -> Result<String, Stri
     master_y_max += 0.5;
     master_y_min -= 0.5;
 
+    if master_y_max - master_y_min < 11.0 && x_max - x_min < 11.0 {
+        add_tick_marks(
+            &mut matrix,
+            x_min,
+            x_max,
+            master_y_min,
+            master_y_max,
+            go.height,
+            go.width,
+        );
+    }
+
     for points in points_collection {
-        for np in
-            get_normalized_points(HEIGHT, master_y_min, master_y_max, &points, sampling_factor)
-                .iter()
-                .filter(|np| np.y_acc < master_y_max && np.y_acc > master_y_min)
+        for np in get_normalized_points(
+            go.height,
+            master_y_min,
+            master_y_max,
+            &points,
+            sampling_factor,
+        )
+        .iter()
+        .filter(|np| np.y_acc < master_y_max && np.y_acc > master_y_min)
         {
             matrix[np.y][np.x].value = true;
         }
     }
 
-    check_add_x_axis(master_y_min, master_y_max, HEIGHT, &mut matrix);
+    check_add_x_axis(master_y_min, master_y_max, go.height, &mut matrix);
 
     matrix.reverse();
 
-    check_add_y_axis(x_min, x_max, WIDTH, &mut matrix);
+    check_add_y_axis(x_min, x_max, go.width, &mut matrix);
 
-    let braille_chars: CharMatrix = get_braille(HEIGHT, WIDTH, &mut matrix);
+    let braille_chars: CharMatrix = get_braille(go.height, go.width, &mut matrix);
 
     Ok(make_graph_string(
         braille_chars,
@@ -93,6 +107,36 @@ pub(crate) fn graph(eq_str: &str, x_min: f32, x_max: f32) -> Result<String, Stri
         master_y_min,
         master_y_max,
     ))
+}
+
+fn add_tick_marks(
+    matrix: &mut CellMatrix,
+    x_min: f32,
+    x_max: f32,
+    y_min: f32,
+    y_max: f32,
+    height: usize,
+    width: usize,
+) {
+    let x_range = x_min.ceil() as isize..=x_max.floor() as isize;
+    let y_range = y_min.ceil() as isize..=y_max.floor() as isize;
+
+    let x_scale = (x_max - x_min) / (width as f32);
+    let y_scale = (y_max - y_min) / (height as f32);
+
+    for x in x_range {
+        let x_normalized = ((x as f32 - x_min) / x_scale).round() as usize;
+
+        for y in y_range.clone() {
+            let y_normalized = ((y as f32 - y_min) / y_scale).round() as usize;
+
+            if let Some(row) = matrix.get_mut(y_normalized) {
+                if let Some(cell) = row.get_mut(x_normalized) {
+                    cell.value = true;
+                }
+            }
+        }
+    }
 }
 
 fn get_normalized_points(
@@ -172,7 +216,7 @@ fn binary_search(nums: Arc<Vec<f32>>, num: f32) -> usize {
         let mid_minus_one = mid - 1;
 
         if num >= nums[mid_minus_one] && num <= nums[mid] {
-            let check = (num - nums[mid_minus_one]).abs() < (num - nums[mid]);
+            let check = (num - nums[mid_minus_one]).abs() < (num - nums[mid]).abs();
             return if check { mid_minus_one } else { mid };
         } else if nums[mid] < num {
             start = mid + 1;

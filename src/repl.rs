@@ -4,6 +4,12 @@ pub(crate) struct Repl {
     pub(crate) previous_answer: f32,
     pub(crate) previous_answer_valid: bool,
     pub(crate) variables: HashMap<char, String>,
+
+    pub(crate) y_min: f32,
+    pub(crate) y_max: f32,
+
+    pub(crate) height: usize,
+    pub(crate) width: usize,
 }
 
 pub(crate) trait PreviousAnswer {

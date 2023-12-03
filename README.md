@@ -40,6 +40,7 @@ THIS TOOL IS A WORK IN PROGRESS, FEATURES MAY CHANGE AT ANY TIME WITH NO NOTICE.
   ```
   :g  | :graph -> graphing mode
   :t  | :table -> table mode
+  :go | :graph options -> graph options mode
   :ag | :animated graph -> animated graph mode
   :ig | :interactive graph -> interactive graph mode
   :la | :linear algebra -> linear algebra mode
