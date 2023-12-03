@@ -31,8 +31,6 @@ pub(crate) fn graph(
 
     let eqs: Vec<&str> = eq_str.split('|').collect();
 
-    let mut matrix: CellMatrix = make_cell_matrix(go.height + 1, go.width + 1);
-
     let mut points_collection: PointMatrix = Vec::with_capacity(eqs.len());
 
     for eq in eqs {
@@ -64,6 +62,8 @@ pub(crate) fn graph(
 
     master_y_max += 0.5;
     master_y_min -= 0.5;
+
+    let mut matrix: CellMatrix = make_cell_matrix(go.height + 1, go.width + 1);
 
     check_add_tick_marks(
         &mut matrix,
