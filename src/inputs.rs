@@ -66,25 +66,3 @@ pub(crate) fn get_g_inputs(l: &mut impl Logger) -> (String, f32, f32) {
 
     (eq, x_min, x_max)
 }
-
-pub(crate) fn get_go_inputs(l: &mut impl Logger) -> (f32, f32, usize, usize) {
-    let mut y_min = get_numerical_input("y min: ", l);
-
-    let mut y_max = get_numerical_input("y max: ", l);
-
-    let width = get_numerical_input("width: ", l);
-
-    let height = get_numerical_input("height: ", l);
-
-    while y_min >= y_max {
-        l.print(&format!(
-            "y min `{y_min}` must be less than y max `{y_max}`"
-        ));
-
-        y_min = get_numerical_input("y min: ", l);
-
-        y_max = get_numerical_input("y max: ", l);
-    }
-
-    (y_min, y_max, width, height)
-}

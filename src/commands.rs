@@ -7,7 +7,7 @@ use crate::{logger::Logger, structs::GraphOptions};
 
 use crate::{
     graphing::graph,
-    inputs::{get_g_inputs, get_go_inputs, get_matrix_input, get_numerical_input, get_text_input},
+    inputs::{get_g_inputs, get_matrix_input, get_numerical_input, get_text_input},
     repl::Repl,
     string_maker::make_table_string,
 };
@@ -18,8 +18,8 @@ use crossterm::{cursor, ExecutableCommand};
 
 pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
     let go = GraphOptions {
-        y_min: repl.y_min,
-        y_max: repl.y_max,
+        y_min: -7.,
+        y_max: 7.,
         width: repl.width,
         height: repl.height,
     };
@@ -41,11 +41,7 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
 }
 
 fn gos(l: &mut impl Logger, repl: &mut Repl) {
-    let (y_min, y_max, width, height) = get_go_inputs(l);
-    repl.y_min = y_min;
-    repl.y_max = y_max;
-    repl.height = height;
-    repl.width = width;
+    repl.update_dimensions(get_numerical_input("width: ", l));
 }
 
 fn t(l: &mut impl Logger) {

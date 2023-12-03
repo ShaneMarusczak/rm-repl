@@ -20,8 +20,6 @@ mod rmr_tests {
             previous_answer: 0.0,
             previous_answer_valid: false,
             variables: HashMap::new(),
-            y_max: 7.,
-            y_min: -7.,
             width: 240,
             height: 120,
         }

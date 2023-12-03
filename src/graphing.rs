@@ -65,7 +65,10 @@ pub(crate) fn graph(
     master_y_max += 0.5;
     master_y_min -= 0.5;
 
-    if master_y_max - master_y_min < 11.0 && x_max - x_min < 11.0 {
+    //make buckets of tick mark couts allowed for each size
+    //like width 300 gets n tick marks
+    //width 150 gets n/2
+    if master_y_max - master_y_min < 15.5 && x_max - x_min < 15.5 {
         add_tick_marks(
             &mut matrix,
             x_min,

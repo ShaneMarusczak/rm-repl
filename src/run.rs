@@ -8,19 +8,9 @@ use crate::{
 };
 
 pub(crate) fn as_repl(l: &mut impl Logger) {
-    use std::collections::HashMap;
-
     l.print("\n--rusty maths repl--\n");
 
-    let mut repl = repl::Repl {
-        previous_answer: 0.0,
-        previous_answer_valid: false,
-        variables: HashMap::new(),
-        y_max: 7.,
-        y_min: -7.,
-        width: 140,
-        height: 70,
-    };
+    let mut repl = repl::Repl::new(0.0, false, 140);
 
     loop {
         let line = inputs::get_text_input(">>", l);

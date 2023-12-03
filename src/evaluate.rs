@@ -1,10 +1,6 @@
 use rusty_maths::equation_analyzer::calculator::calculate;
 
-use crate::{
-    logger::Logger,
-    repl::{PreviousAnswer, Repl},
-    variables,
-};
+use crate::{logger::Logger, repl::Repl, variables};
 
 pub(crate) fn evaluate(line: &str, repl: &mut Repl, l: &mut impl Logger) {
     let line_internal = variables::insert_ans_vars(line, repl);
