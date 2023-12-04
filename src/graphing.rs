@@ -1,7 +1,7 @@
 use crate::string_maker::make_graph_string;
 use crate::structs::{Cell, GraphOptions, NormalizedPoint};
 use rusty_maths::{
-    equation_analyzer::{calculator::plot, eq_data_builder::Point},
+    equation_analyzer::calculator::{plot, Point},
     utilities::abs_f32,
 };
 

@@ -2,7 +2,7 @@
 mod rmr_tests {
     use std::collections::HashMap;
 
-    use rusty_maths::equation_analyzer::eq_data_builder::Point;
+    use rusty_maths::equation_analyzer::calculator::Point;
 
     use crate::{
         evaluate::{evaluate, simple_evaluate},

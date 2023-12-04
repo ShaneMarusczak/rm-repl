@@ -28,6 +28,9 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
         //left right moves the point, up down switches graphs (if multiple)
 
         //TODO: add math tutor (mt) option that starts a chat session with chat gpt
+        //that inserts "you are a math tutor" or w/e to the start of each prompt
+
+        //TODO: a fast forier transform (fft), takes a sound file, shows a report of all wave forms seen, with time ranges when heard
         "t" | "table" => t(l),
         "g" | "graph" => g(l, &go),
         "go" | "graph options" => gos(l, repl),
