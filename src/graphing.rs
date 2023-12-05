@@ -63,11 +63,11 @@ pub(crate) fn graph(
             let p = points
                 .iter()
                 .map(|p| {
-                    return if p.x.is_nan() || p.y.is_nan() {
+                    if p.x.is_nan() || p.y.is_nan() {
                         Point::new(0.0, 0.0)
                     } else {
                         Point::new(p.x, p.y)
-                    };
+                    }
                 })
                 .collect();
             points_collection.push(p);

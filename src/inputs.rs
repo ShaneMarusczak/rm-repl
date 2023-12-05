@@ -1,7 +1,7 @@
+use std::io::{stdin, stdout, Write};
 use std::process::exit;
 
 use rusty_maths::{equation_analyzer::calculator::calculate, linear_algebra::Matrix};
-use rustyline::error::ReadlineError;
 
 use crate::logger::Logger;
 
@@ -35,11 +35,12 @@ where
 }
 
 pub(crate) fn get_text_input(msg: &str, l: &mut impl Logger) -> String {
-    let mut rl = rustyline::Editor::<()>::new().unwrap();
-    let readline = rl.readline(msg);
+    let mut input = String::new();
+    print!("{}", msg);
+    let _ = stdout().flush();
+    let readline = stdin().read_line(&mut input);
     match readline {
-        Ok(line) => line.trim().to_owned(),
-        Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => exit(0),
+        Ok(_) => input.trim().to_owned(),
         Err(err) => {
             l.eprint(&format!("Error: {err:?}"));
             exit(0);

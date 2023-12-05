@@ -10,4 +10,3 @@ edition = "2021"
  num-traits = "0.2.17"
  num_cpus = "1.15.0"
  rusty-maths = { git = "https://github.com/ShaneMarusczak/rusty-maths" }
- rustyline = "10.0.0"
