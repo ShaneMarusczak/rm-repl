@@ -79,17 +79,9 @@ pub(crate) fn graph(
     master_y_max += 0.5;
     master_y_min -= 0.5;
 
-    let mut matrix: CellMatrix = make_cell_matrix(go.height + 1, go.width + 1);
+    let mut matrix: CellMatrix = make_cell_matrix(go);
 
-    check_add_tick_marks(
-        &mut matrix,
-        x_min,
-        x_max,
-        master_y_min,
-        master_y_max,
-        go.height,
-        go.width,
-    );
+    check_add_tick_marks(&mut matrix, x_min, x_max, master_y_min, master_y_max, go);
 
     for points in points_collection {
         for np in get_normalized_points(
@@ -99,8 +91,7 @@ pub(crate) fn graph(
             &points,
             sampling_factor,
         )
-        .iter()
-        .filter(|np| np.y_acc < master_y_max && np.y_acc > master_y_min)
+        .filter(|np| np.y_acc <= master_y_max && np.y_acc >= master_y_min)
         {
             matrix[np.y][np.x].value = true;
         }
@@ -112,7 +103,7 @@ pub(crate) fn graph(
 
     check_add_y_axis(x_min, x_max, go.width, &mut matrix);
 
-    let braille_chars: CharMatrix = get_braille(go.height, go.width, &mut matrix);
+    let braille_chars: CharMatrix = get_braille(go, &mut matrix);
 
     Ok(make_graph_string(
         braille_chars,
@@ -129,14 +120,13 @@ fn check_add_tick_marks(
     x_max: f32,
     y_min: f32,
     y_max: f32,
-    height: usize,
-    width: usize,
+    go: &GraphOptions,
 ) {
-    let max = if width < 76 {
+    let max = if go.width < 76 {
         80
-    } else if width > 75 && width < 151 {
+    } else if go.width > 75 && go.width < 151 {
         160
-    } else if width > 150 && width < 301 {
+    } else if go.width > 150 && go.width < 301 {
         300
     } else {
         400
@@ -147,8 +137,8 @@ fn check_add_tick_marks(
     let y_start = y_min.ceil() as isize;
     let y_end = y_max.floor() as isize;
 
-    let x_scale = (x_max - x_min) / (width as f32);
-    let y_scale = (y_max - y_min) / (height as f32);
+    let x_scale = (x_max - x_min) / (go.width as f32);
+    let y_scale = (y_max - y_min) / (go.height as f32);
 
     let mut points: Vec<(usize, usize)> = vec![];
     for x in x_range {
@@ -182,7 +172,7 @@ fn get_normalized_points(
     y_max: f32,
     points: &Vec<Point>,
     sampling_factor: f32,
-) -> Vec<NormalizedPoint> {
+) -> impl Iterator<Item = NormalizedPoint> {
     let y_step = (y_max - y_min) / height as f32;
 
     let y_values: Arc<Vec<f32>> = Arc::new(
@@ -222,12 +212,9 @@ fn get_normalized_points(
         }));
     }
 
-    let mut normalized_points: Vec<NormalizedPoint> = Vec::with_capacity(points.len());
-
-    for thread in threads {
-        normalized_points.append(&mut thread.join().unwrap());
-    }
-    normalized_points
+    threads
+        .into_iter()
+        .flat_map(|thread| thread.join().unwrap())
 }
 
 ///assumes nums is in ascending order
@@ -268,9 +255,9 @@ fn binary_search(nums: &Vec<f32>, num: f32) -> usize {
 ///https://en.wikipedia.org/wiki/Braille_Patterns
 ///
 /// ⣿
-fn get_braille(height: usize, width: usize, matrix: &mut CellMatrix) -> CharMatrix {
-    let row_char_count = height / 4;
-    let col_char_count = width / 2;
+fn get_braille(go: &GraphOptions, matrix: &mut CellMatrix) -> CharMatrix {
+    let row_char_count = go.height / 4;
+    let col_char_count = go.width / 2;
 
     let mut chars: CharMatrix = vec![Vec::with_capacity(col_char_count); row_char_count];
 
@@ -353,9 +340,9 @@ fn get_y_max(points: &[Point]) -> f32 {
     points.iter().map(|point| point.y).fold(f32::MIN, f32::max)
 }
 
-fn make_cell_matrix(vec_count: usize, vec_length: usize) -> CellMatrix {
-    (0..vec_count)
-        .map(|_| (0..vec_length).map(|_| Cell::new()).collect())
+fn make_cell_matrix(go: &GraphOptions) -> CellMatrix {
+    (0..go.height + 1)
+        .map(|_| (0..go.width + 1).map(|_| Cell::new()).collect())
         .collect()
 }
 
