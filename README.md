@@ -4,6 +4,8 @@ A repl (read–eval–print loop) for rusty maths
 
 THIS TOOL IS A WORK IN PROGRESS, FEATURES MAY CHANGE AT ANY TIME WITH NO NOTICE.
 
+<img src="./images/Screenshot%202023-12-05%20at%204.57.16 PM.png" width="256"/>
+
 ## Description of features
 
 - Evaluation of mathematical expressions passed in at the command line or in a
