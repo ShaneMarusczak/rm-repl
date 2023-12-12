@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::process::Command;
 
 use rusty_maths::equation_analyzer::calculator::plot;
 
@@ -17,6 +18,10 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
 
         if line.is_empty() {
             continue;
+        } else if line.eq_ignore_ascii_case("clear") {
+            Command::new("clear")
+                .status()
+                .expect("clear command failed");
         } else if let Some(stripped) = line.strip_prefix(':') {
             match stripped {
                 "q" | "quit" => break,

@@ -103,6 +103,19 @@ pub(crate) fn graph(
 
     check_add_y_axis(x_min, x_max, go.width, &mut matrix);
 
+    //TODO: get braille is actually more like 'get_frame', using braille is just an implemntation thing
+    //'CharMatrix' -> 'Frame' with a to_string() implementation
+    //For the rotation of a cube, i can reuse the same matrix here as the x,y coordinates of the cube vertexs
+    //I need to make a draw line function
+    //a line from (x_1, y_1) to (x_2, y_2)
+    //printing angled lines is the same as how I printed the axis lines
+    //Get the slope with y2-y1/x2-x1
+    //then do rise / run with two loops
+    //inner loop loops 'rise' times for every 'run' outer loop runs, one loop prints in x dir, other prints in y (Anti-Aliasing?)
+    //if the rise/run is 51/10 that wont work, 5/1 is a near approximation
+    //try to reduce it to rise/1 and round to the nearest whole value. experiment with this idea.
+    //stretch goal, make each visible face appear differently(different braile patters?)(A die?)/ or make hidden edges distinct
+    //is it the same math? it just gets applied to all points, how is each point different than a vertex?
     let braille_chars: CharMatrix = get_braille(go, &mut matrix);
 
     Ok(make_graph_string(

@@ -31,6 +31,8 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
         //that inserts "you are a math tutor" or w/e to the start of each prompt
 
         //TODO: a fast forier transform (fft), takes a sound file, shows a report of all wave forms seen, with time ranges when heard
+
+        //TODO: a 3d cube that spins (3dc), and a hyper-cube 4d (4dc)
         "t" | "table" => t(l),
         "g" | "graph" => g(l, &go),
         "go" | "graph options" => gos(l, repl),
