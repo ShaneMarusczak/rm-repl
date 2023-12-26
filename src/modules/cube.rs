@@ -56,7 +56,7 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
 
     loop {
         enable_raw_mode().unwrap();
-        let v = poll(Duration::from_millis(100)).unwrap();
+        let v = poll(Duration::from_millis(50)).unwrap();
         disable_raw_mode().unwrap();
         if v {
             match read().unwrap() {
@@ -72,7 +72,7 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
             stdout
                 .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                 .unwrap();
-            rotate_points(&mut points, 10., 11., 12.);
+            rotate_points(&mut points, 1., 2., 3.);
             let cubee = make_cube(go, points.clone(), &edges);
             l.print(&cubee);
         }
