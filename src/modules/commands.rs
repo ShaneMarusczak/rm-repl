@@ -38,7 +38,7 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
         "ag" | "animated graph" => ag(l, &go),
         "ig" | "interactive graph" => ig(l, &go),
         "la" | "linear algebra" => la(l),
-        "3d" | "c" | "cube" => c(l, &go),
+        "c" | "cube" | "3d" => c(l, &go),
         _ => {
             l.eprint(&format!("invalid command {line}"));
         }

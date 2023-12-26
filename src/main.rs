@@ -1,6 +1,8 @@
 mod modules;
-use modules::logger::{Logger, StdoutLogger};
-use modules::run;
+use modules::{
+    logger::{Logger, StdoutLogger},
+    run,
+};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

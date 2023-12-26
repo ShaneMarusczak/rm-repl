@@ -1,6 +1,6 @@
 use crate::modules::common::*;
 use crossterm::{
-    cursor::{self, DisableBlinking, EnableBlinking},
+    cursor::{self, Hide, Show},
     event::{poll, read, Event, KeyCode, KeyEvent, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode},
@@ -12,6 +12,7 @@ use crate::modules::logger::Logger;
 
 pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
     let mut stdout = std::io::stdout();
+    execute!(stdout, Hide).unwrap();
 
     let ver_gap = (go.height / 4) as f32;
     let hor_gap = (go.width / 4) as f32;
@@ -44,20 +45,21 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
         [3, 7],
     ];
     let mut points = vec![p0, p1, p2, p3, p4, p5, p6, p7, origin];
-    let cubee = make_cube(go, points.clone(), &edges);
-    execute!(stdout, DisableBlinking).unwrap();
-    let new_lines = cubee
+    let frame = make_cube(go, points.clone(), &edges);
+
+    let new_lines = frame
         .chars()
         .filter(|c| c.eq_ignore_ascii_case(&'\n'))
         .count()
         + 1;
 
-    l.print(&cubee);
+    l.print(&frame);
 
     loop {
         enable_raw_mode().unwrap();
         let v = poll(Duration::from_millis(50)).unwrap();
         disable_raw_mode().unwrap();
+
         if v {
             match read().unwrap() {
                 Event::Key(KeyEvent {
@@ -72,12 +74,14 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
             stdout
                 .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                 .unwrap();
+
             rotate_points(&mut points, 1., 2., 3.);
-            let cubee = make_cube(go, points.clone(), &edges);
-            l.print(&cubee);
+
+            let frame = make_cube(go, points.clone(), &edges);
+            l.print(&frame);
         }
     }
-    execute!(stdout, EnableBlinking).unwrap();
+    execute!(stdout, Show).unwrap();
 }
 
 fn rotate_points(
