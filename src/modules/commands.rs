@@ -3,11 +3,12 @@ use rusty_maths::{
     linear_algebra::{vector_mean, vector_sum},
 };
 
-use crate::{logger::Logger, structs::GraphOptions};
-
-use crate::{
+use crate::modules::{
+    common::*,
+    cube::cube,
     graphing::graph,
     inputs::{get_g_inputs, get_matrix_input, get_numerical_input, get_text_input},
+    logger::Logger,
     repl::Repl,
     string_maker::make_table_string,
 };
@@ -31,18 +32,21 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
         //that inserts "you are a math tutor" or w/e to the start of each prompt
 
         //TODO: a fast forier transform (fft), takes a sound file, shows a report of all wave forms seen, with time ranges when heard
-
-        //TODO: a 3d cube that spins (3dc), and a hyper-cube 4d (4dc)
         "t" | "table" => t(l),
         "g" | "graph" => g(l, &go),
         "go" | "graph options" => gos(l, repl),
         "ag" | "animated graph" => ag(l, &go),
         "ig" | "interactive graph" => ig(l, &go),
         "la" | "linear algebra" => la(l),
+        "3d" | "c" | "cube" => c(l, &go),
         _ => {
             l.eprint(&format!("invalid command {line}"));
         }
     }
+}
+
+fn c(l: &mut impl Logger, go: &GraphOptions) {
+    cube(l, go);
 }
 
 fn gos(l: &mut impl Logger, repl: &mut Repl) {

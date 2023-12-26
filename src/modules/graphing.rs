@@ -1,16 +1,17 @@
-use crate::string_maker::make_graph_string;
-use crate::structs::{Cell, GraphOptions, NormalizedPoint};
+use crate::modules::{
+    common::{
+        get_braille, make_cell_matrix, CellMatrix, CharMatrix, GraphOptions, NormalizedPoint,
+        PointMatrix,
+    },
+    string_maker::make_graph_string,
+};
+
 use rusty_maths::{
     equation_analyzer::calculator::{plot, Point},
     utilities::abs_f32,
 };
-
 use std::sync::Arc;
 use std::thread;
-
-type CellMatrix = Vec<Vec<Cell>>;
-type PointMatrix = Vec<Vec<Point>>;
-type CharMatrix = Vec<Vec<char>>;
 
 pub(crate) fn graph(
     eq_str: &str,
@@ -103,19 +104,6 @@ pub(crate) fn graph(
 
     check_add_y_axis(x_min, x_max, go.width, &mut matrix);
 
-    //TODO: get braille is actually more like 'get_frame', using braille is just an implemntation thing
-    //'CharMatrix' -> 'Frame' with a to_string() implementation
-    //For the rotation of a cube, i can reuse the same matrix here as the x,y coordinates of the cube vertexs
-    //I need to make a draw line function
-    //a line from (x_1, y_1) to (x_2, y_2)
-    //printing angled lines is the same as how I printed the axis lines
-    //Get the slope with y2-y1/x2-x1
-    //then do rise / run with two loops
-    //inner loop loops 'rise' times for every 'run' outer loop runs, one loop prints in x dir, other prints in y (Anti-Aliasing?)
-    //if the rise/run is 51/10 that wont work, 5/1 is a near approximation
-    //try to reduce it to rise/1 and round to the nearest whole value. experiment with this idea.
-    //stretch goal, make each visible face appear differently(different braile patters?)(A die?)/ or make hidden edges distinct
-    //is it the same math? it just gets applied to all points, how is each point different than a vertex?
     let braille_chars: CharMatrix = get_braille(go, &mut matrix);
 
     Ok(make_graph_string(
@@ -264,65 +252,6 @@ fn binary_search(nums: &Vec<f32>, num: f32) -> usize {
     unreachable!()
 }
 
-///converts a matrix of 1s and 0s to a matrix of braille characters with dots at the 1s and blanks at the 0s
-///https://en.wikipedia.org/wiki/Braille_Patterns
-///
-/// ⣿
-fn get_braille(go: &GraphOptions, matrix: &mut CellMatrix) -> CharMatrix {
-    let row_char_count = go.height / 4;
-    let col_char_count = go.width / 2;
-
-    let mut chars: CharMatrix = vec![Vec::with_capacity(col_char_count); row_char_count];
-
-    for row in 0..matrix.len() {
-        for col in 0..matrix[row].len() {
-            let cell: &Cell = &matrix[row][col];
-
-            //this cell has already been used in a previous char
-            if cell.visited {
-                continue;
-            }
-            let mut braille_char_bits = 0u8;
-            let mut shift = 0u8;
-
-            //1-6 braille dots
-            for dx in 0..=1 {
-                for dy in 0..=2 {
-                    if let Some(row_data) = matrix.get_mut(row + dy) {
-                        if let Some(cell_data) = row_data.get_mut(col + dx) {
-                            //00000000 |= 00000001 (shifted true by 0) -> 00000001
-                            //00000001 |= 00000010 (shifted true by 1) -> 00000011
-                            //00000011 |= 00000000 (shifted false by 2) -> 00000011
-                            //etc..
-                            braille_char_bits |= (cell_data.value as u8) << shift;
-                            cell_data.visited = true;
-                            shift += 1;
-                        }
-                    }
-                }
-            }
-
-            //7-8 braille dots
-            for dx in 0..=1 {
-                let dy = 3;
-                if let Some(row_data) = matrix.get_mut(row + dy) {
-                    if let Some(cell_data) = row_data.get_mut(col + dx) {
-                        braille_char_bits |= (cell_data.value as u8) << shift;
-                        cell_data.visited = true;
-                        shift += 1;
-                    }
-                }
-            }
-
-            if (row / 4) < chars.len() {
-                let braille_char = '⠀' as u32 + braille_char_bits as u32;
-                chars[row / 4].push(std::char::from_u32(braille_char).unwrap());
-            }
-        }
-    }
-    chars
-}
-
 fn check_add_x_axis(y_min: f32, y_max: f32, height: usize, matrix: &mut CellMatrix) {
     let (x_axis_in_view, x_axis_row): (bool, usize) = x_y_axis_setup(y_min, y_max, height);
 
@@ -351,12 +280,6 @@ fn get_y_min(points: &[Point]) -> f32 {
 
 fn get_y_max(points: &[Point]) -> f32 {
     points.iter().map(|point| point.y).fold(f32::MIN, f32::max)
-}
-
-fn make_cell_matrix(go: &GraphOptions) -> CellMatrix {
-    (0..go.height + 1)
-        .map(|_| (0..go.width + 1).map(|_| Cell::new()).collect())
-        .collect()
 }
 
 fn x_y_axis_setup(min: f32, max: f32, axis: usize) -> (bool, usize) {

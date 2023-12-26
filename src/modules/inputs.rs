@@ -3,7 +3,7 @@ use std::process::exit;
 
 use rusty_maths::{equation_analyzer::calculator::calculate, linear_algebra::Matrix};
 
-use crate::logger::Logger;
+use crate::modules::logger::Logger;
 
 pub(crate) fn get_matrix_input(l: &mut impl Logger) -> Matrix {
     let vec_amount: usize = get_numerical_input("vector count: ", l);

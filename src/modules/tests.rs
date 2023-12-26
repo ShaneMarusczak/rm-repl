@@ -4,14 +4,14 @@ mod rmr_tests {
 
     use rusty_maths::equation_analyzer::calculator::Point;
 
-    use crate::{
+    use crate::modules::{
+        common::GraphOptions,
         evaluate::{evaluate, simple_evaluate},
         graphing::graph,
         logger::TestLogger,
         repl::Repl,
         run::as_cli_tool,
         string_maker::make_table_string,
-        structs::GraphOptions,
         variables::{handle_var, is_variable},
     };
 

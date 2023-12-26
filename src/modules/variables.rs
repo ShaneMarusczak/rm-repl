@@ -1,6 +1,6 @@
 use rusty_maths::equation_analyzer::calculator::calculate;
 
-use crate::{logger::Logger, repl};
+use crate::modules::{logger::Logger, repl};
 
 pub(crate) fn handle_var(str: &str, repl: &mut repl::Repl, l: &mut impl Logger) {
     let mut iter = str.chars();

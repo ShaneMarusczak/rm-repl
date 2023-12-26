@@ -1,18 +1,6 @@
-use logger::Logger;
-
-mod commands;
-mod evaluate;
-mod graphing;
-mod inputs;
-mod logger;
-mod repl;
-mod run;
-mod string_maker;
-mod structs;
-mod tests;
-mod variables;
-
-use crate::logger::StdoutLogger;
+mod modules;
+use modules::logger::{Logger, StdoutLogger};
+use modules::run;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

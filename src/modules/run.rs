@@ -3,9 +3,9 @@ use std::process::Command;
 
 use rusty_maths::equation_analyzer::calculator::plot;
 
-use crate::{
-    commands, evaluate, graphing, inputs, logger::Logger, repl, string_maker::make_table_string,
-    structs::GraphOptions, variables,
+use crate::modules::{
+    commands, common::GraphOptions, evaluate, graphing, inputs, logger::Logger, repl,
+    string_maker::make_table_string, variables,
 };
 
 pub(crate) fn as_repl(l: &mut impl Logger) {
@@ -18,13 +18,14 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
 
         if line.is_empty() {
             continue;
-        } else if line.eq_ignore_ascii_case("clear") {
-            Command::new("clear")
-                .status()
-                .expect("clear command failed");
         } else if let Some(stripped) = line.strip_prefix(':') {
             match stripped {
                 "q" | "quit" => break,
+                "clear" => {
+                    Command::new("clear")
+                        .status()
+                        .expect("clear command failed");
+                }
                 _ => commands::run_command(stripped, l, &mut repl),
             }
         } else if !repl.previous_answer_valid && line.contains("ans") {
