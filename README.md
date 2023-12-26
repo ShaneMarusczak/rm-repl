@@ -47,6 +47,7 @@ THIS TOOL IS A WORK IN PROGRESS, FEATURES MAY CHANGE AT ANY TIME WITH NO NOTICE.
   :ig | :interactive graph -> interactive graph mode
   :la | :linear algebra -> linear algebra mode
   :q  | :quit -> exits the repl session
+  :c  | :cube | :3d -> renders an animated cube to the terminal
   ```
 - In linear algebra mode the following commands become valid:
   ```
