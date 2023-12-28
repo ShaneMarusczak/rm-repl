@@ -16,17 +16,28 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
 
     let ver_gap = (go.height / 4) as f32;
     let hor_gap = (go.width / 4) as f32;
-    let depth = (go.height / 4) as f32;
 
-    let p0 = [hor_gap, ver_gap, depth / 2.0];
-    let p1 = [hor_gap, 2. * ver_gap, depth / 2.0];
-    let p2 = [2. * hor_gap, ver_gap, depth / 2.0];
-    let p3 = [2. * hor_gap, 2. * ver_gap, depth / 2.0];
+    let edge_length = f32::min(ver_gap, hor_gap);
 
-    let p4 = [hor_gap, ver_gap, -depth / 2.0];
-    let p5 = [hor_gap, 2. * ver_gap, -depth / 2.0];
-    let p6 = [2. * hor_gap, ver_gap, -depth / 2.0];
-    let p7 = [2. * hor_gap, 2. * ver_gap, -depth / 2.0];
+    let depth_gap = edge_length;
+
+    let p0 = [hor_gap, ver_gap, depth_gap / 2.0];
+    let p1 = [hor_gap, ver_gap + edge_length, depth_gap / 2.0];
+    let p2 = [hor_gap + edge_length, ver_gap, depth_gap / 2.0];
+    let p3 = [
+        hor_gap + edge_length,
+        ver_gap + edge_length,
+        depth_gap / 2.0,
+    ];
+
+    let p4 = [hor_gap, ver_gap, -depth_gap / 2.0];
+    let p5 = [hor_gap, ver_gap + edge_length, -depth_gap / 2.0];
+    let p6 = [hor_gap + edge_length, ver_gap, -depth_gap / 2.0];
+    let p7 = [
+        hor_gap + edge_length,
+        ver_gap + edge_length,
+        -depth_gap / 2.0,
+    ];
 
     let origin = [(p0[0] + p3[0]) / 2.0, (p0[1] + p3[1]) / 2.0, 0.0];
 
@@ -57,7 +68,7 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
 
     loop {
         enable_raw_mode().unwrap();
-        let v = poll(Duration::from_millis(50)).unwrap();
+        let v = poll(Duration::from_millis(20)).unwrap();
         disable_raw_mode().unwrap();
 
         if v {
@@ -75,7 +86,7 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
                 .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                 .unwrap();
 
-            rotate_points(&mut points, 1., 2., 3.);
+            rotate_points(&mut points, 0.5, 1., 2.);
 
             let frame = make_cube(go, points.clone(), &edges);
             l.print(&frame);
