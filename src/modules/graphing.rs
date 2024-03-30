@@ -171,7 +171,7 @@ fn get_normalized_points(
     height: usize,
     y_min: f32,
     y_max: f32,
-    points: &Vec<Point>,
+    points: &[Point],
     sampling_factor: f32,
 ) -> impl Iterator<Item = NormalizedPoint> {
     let y_step = (y_max - y_min) / height as f32;
@@ -219,7 +219,7 @@ fn get_normalized_points(
 }
 
 ///assumes nums is in ascending order
-fn binary_search(nums: &Vec<f32>, num: f32) -> usize {
+fn binary_search(nums: &[f32], num: f32) -> usize {
     if nums[0] >= num {
         return 0;
     }

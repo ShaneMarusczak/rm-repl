@@ -56,7 +56,7 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
         [3, 7],
     ];
     let mut points = vec![p0, p1, p2, p3, p4, p5, p6, p7, origin];
-    let frame = make_cube(go, points.clone(), &edges);
+    let frame = make_cube(go, &points, &edges);
 
     let new_lines = frame
         .chars()
@@ -86,9 +86,9 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
                 .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
                 .unwrap();
 
-            rotate_points(&mut points, 0.5, 1., 2.);
+            rotate_points(&mut points, 1.2, 1.5, -1.8);
 
-            let frame = make_cube(go, points.clone(), &edges);
+            let frame = make_cube(go, &points, &edges);
             l.print(&frame);
         }
     }
@@ -96,7 +96,7 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
 }
 
 fn rotate_points(
-    points: &mut Vec<[f32; 3]>,
+    points: &mut [[f32; 3]],
     angle_degrees_x: f32,
     angle_degrees_y: f32,
     angle_degrees_z: f32,
@@ -132,7 +132,7 @@ fn rotate_points(
     }
 }
 
-fn make_cube(go: &GraphOptions, p: Vec<[f32; 3]>, edges: &[[usize; 2]]) -> String {
+fn make_cube(go: &GraphOptions, p: &[[f32; 3]], edges: &[[usize; 2]]) -> String {
     let mut matrix: CellMatrix = make_cell_matrix(go);
 
     for edge in edges {

@@ -39,7 +39,7 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
     }
 }
 
-pub(crate) fn as_cli_tool(args: &Vec<String>, l: &mut impl Logger) {
+pub(crate) fn as_cli_tool(args: &[String], l: &mut impl Logger) {
     match args.len().cmp(&2) {
         Ordering::Equal => evaluate::simple_evaluate(&args[1], l),
 
