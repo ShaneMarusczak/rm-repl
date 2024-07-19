@@ -167,7 +167,7 @@ fn check_add_tick_marks(
     }
 }
 
-fn get_normalized_points(
+pub(crate) fn get_normalized_points(
     height: usize,
     y_min: f32,
     y_max: f32,

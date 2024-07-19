@@ -42,12 +42,14 @@ THIS TOOL IS A WORK IN PROGRESS, FEATURES MAY CHANGE AT ANY TIME WITH NO NOTICE.
   ```
   :g  | :graph -> graphing mode
   :t  | :table -> table mode
-  :go | :graph options -> graph options mode
+  :o | :graph options -> graph options mode
   :ag | :animated graph -> animated graph mode
   :ig | :interactive graph -> interactive graph mode
   :la | :linear algebra -> linear algebra mode
   :q  | :quit -> exits the repl session
   :c  | :cube | :3d -> renders an animated cube to the terminal
+  :qbc -> quadratic bezier curve
+  :cbc -> cubic bezier curve
   ```
 - In linear algebra mode the following commands become valid:
   ```

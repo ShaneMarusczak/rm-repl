@@ -95,3 +95,47 @@ pub(crate) fn get_braille(go: &GraphOptions, matrix: &mut CellMatrix) -> CharMat
     }
     chars
 }
+
+pub(crate) fn draw_line(matrix: &mut CellMatrix, x1: usize, y1: usize, x2: usize, y2: usize) {
+    let dx = x2 as isize - x1 as isize;
+    let dy = y2 as isize - y1 as isize;
+    let steep = dy.abs() > dx.abs();
+
+    let (x1, y1, x2, y2) = if steep {
+        (y1, x1, y2, x2)
+    } else {
+        (x1, y1, x2, y2)
+    };
+
+    let (x1, x2, y1, y2) = if x1 > x2 {
+        (x2, x1, y2, y1)
+    } else {
+        (x1, x2, y1, y2)
+    };
+
+    let dx = x2 as isize - x1 as isize;
+    let dy = y2 as isize - y1 as isize;
+    let derror2 = dy.abs() * 2;
+    let mut error2 = 0;
+    let mut y = y1 as isize;
+
+    for x in x1..=x2 {
+        if steep {
+            if let Some(col) = matrix.get_mut(x) {
+                if let Some(cell) = col.get_mut(y as usize) {
+                    cell.value = true;
+                }
+            }
+        } else if let Some(row) = matrix.get_mut(y as usize) {
+            if let Some(cell) = row.get_mut(x) {
+                cell.value = true;
+            }
+        }
+        error2 += derror2;
+
+        if error2 > dx {
+            y += if y2 > y1 { 1 } else { -1 };
+            error2 -= dx * 2;
+        }
+    }
+}

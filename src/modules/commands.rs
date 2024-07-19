@@ -3,6 +3,8 @@ use rusty_maths::{
     linear_algebra::{vector_mean, vector_sum},
 };
 
+use rusty_maths::equation_analyzer::calculator::Point;
+
 use crate::modules::{
     common::*,
     cube::cube,
@@ -16,6 +18,8 @@ use crate::modules::{
 use crossterm::event::{read, Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{cursor, ExecutableCommand};
+
+use super::bezier_curve::{cubic_bezier, quadratic_bezier};
 
 pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
     let go = GraphOptions {
@@ -34,15 +38,55 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
         //TODO: a fast forier transform (fft), takes a sound file, shows a report of all wave forms seen, with time ranges when heard
         "t" | "table" => t(l),
         "g" | "graph" => g(l, &go),
-        "go" | "graph options" => gos(l, repl),
+        "o" | "graph options" => gos(l, repl),
         "ag" | "animated graph" => ag(l, &go),
         "ig" | "interactive graph" => ig(l, &go),
         "la" | "linear algebra" => la(l),
         "c" | "cube" | "3d" => c(l, &go),
+        "qbc" => qbc(l, &go),
+        "cbc" => cbc(l, &go),
         _ => {
             l.eprint(&format!("invalid command {line}"));
         }
     }
+}
+
+fn cbc(l: &mut impl Logger, go: &GraphOptions) {
+    let p1_x = get_numerical_input("start x: ", l);
+    let p1_y = get_numerical_input("start y: ", l);
+
+    let p2_x = get_numerical_input("control1 x: ", l);
+    let p2_y = get_numerical_input("control1 y: ", l);
+
+    let p3_x = get_numerical_input("control2 x: ", l);
+    let p3_y = get_numerical_input("control2 y: ", l);
+
+    let p4_x = get_numerical_input("end x: ", l);
+    let p4_y = get_numerical_input("end y: ", l);
+
+    let p1 = Point::new(p1_x, p1_y);
+    let p2 = Point::new(p2_x, p2_y);
+    let p3 = Point::new(p3_x, p3_y);
+    let p4 = Point::new(p4_x, p4_y);
+
+    cubic_bezier(p1, p2, p3, p4, go, l);
+}
+
+fn qbc(l: &mut impl Logger, go: &GraphOptions) {
+    let p1_x = get_numerical_input("start x: ", l);
+    let p1_y = get_numerical_input("start y: ", l);
+
+    let p2_x = get_numerical_input("control x: ", l);
+    let p2_y = get_numerical_input("control y: ", l);
+
+    let p3_x = get_numerical_input("end x: ", l);
+    let p3_y = get_numerical_input("end y: ", l);
+
+    let p1 = Point::new(p1_x, p1_y);
+    let p2 = Point::new(p2_x, p2_y);
+    let p3 = Point::new(p3_x, p3_y);
+
+    quadratic_bezier(p1, p2, p3, go, l);
 }
 
 fn c(l: &mut impl Logger, go: &GraphOptions) {

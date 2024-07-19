@@ -1,3 +1,4 @@
+pub(crate) mod bezier_curve;
 pub(crate) mod commands;
 pub(crate) mod common;
 pub(crate) mod cube;

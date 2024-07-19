@@ -9,6 +9,10 @@ pub(crate) struct Repl {
     pub(crate) width: usize,
 }
 
+//the Repl object is a user session object
+//store results of math problems
+//give a session cache, debug flags
+
 impl Repl {
     pub(crate) fn new(previous_answer: f32, previous_answer_valid: bool, width: usize) -> Self {
         Self {

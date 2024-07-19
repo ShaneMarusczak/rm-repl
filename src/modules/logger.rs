@@ -21,9 +21,9 @@ impl Logger for StdoutLogger {
 
 impl Logger for TestLogger {
     fn print(&mut self, value: &str) {
-        self.val = value.to_owned();
+        value.clone_into(&mut self.val);
     }
     fn eprint(&mut self, value: &str) {
-        self.error_val = value.to_owned();
+        value.clone_into(&mut self.error_val);
     }
 }
