@@ -45,13 +45,32 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
         "c" | "cube" | "3d" => c(l, &go),
         "qbc" => qbc(l, &go),
         "cbc" => cbc(l, &go),
+        "h" | "help" => h(l),
         _ => {
             l.eprint(&format!("invalid command {line}"));
         }
     }
 }
 
+fn h(l: &mut impl Logger) {
+    l.print("Available commands:");
+    l.print("t | table: Generate a table of values for a given equation.");
+    l.print("g | graph: Display a graph for a given equation.");
+    l.print("o | graph options: Update graph display options.");
+    l.print("ag | animated graph: Show an animated graph.");
+    l.print("ig | interactive graph: Show an interactive graph.");
+    l.print("la | linear algebra: Perform linear algebra operations.");
+    l.print("c | cube | 3d: Display a 3D cube.");
+    l.print("qbc: Generate a cubic Bezier curve.");
+    l.print("cbc: Generate a quadratic Bezier curve.");
+}
+
 fn cbc(l: &mut impl Logger, go: &GraphOptions) {
+    l.print(&format!(
+        "Lower Right Coordinates - x:{}, y:{}",
+        go.width, go.height
+    ));
+
     let p1_x = get_numerical_input("start x: ", l);
     let p1_y = get_numerical_input("start y: ", l);
 
@@ -73,6 +92,10 @@ fn cbc(l: &mut impl Logger, go: &GraphOptions) {
 }
 
 fn qbc(l: &mut impl Logger, go: &GraphOptions) {
+    l.print(&format!(
+        "Lower Right Coordinates - x:{}, y:{}",
+        go.width, go.height
+    ));
     let p1_x = get_numerical_input("start x: ", l);
     let p1_y = get_numerical_input("start y: ", l);
 

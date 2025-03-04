@@ -182,7 +182,7 @@ pub(crate) fn get_normalized_points(
             .collect(),
     );
 
-    let num_threads: usize = num_cpus::get();
+    let num_threads: usize = num_cpus::get().max(1);
     let chunk_size: usize = (points.len() / num_threads) + 1;
 
     let mut threads = Vec::with_capacity(num_threads);

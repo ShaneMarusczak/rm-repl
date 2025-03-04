@@ -8,12 +8,26 @@ mod rmr_tests {
         common::GraphOptions,
         evaluate::{evaluate, simple_evaluate},
         graphing::graph,
-        logger::TestLogger,
+        logger::Logger,
         repl::Repl,
         run::as_cli_tool,
         string_maker::make_table_string,
         variables::{handle_var, is_variable},
     };
+
+    pub(crate) struct TestLogger {
+        pub(crate) val: String,
+        pub(crate) error_val: String,
+    }
+
+    impl Logger for TestLogger {
+        fn print(&mut self, value: &str) {
+            value.clone_into(&mut self.val);
+        }
+        fn eprint(&mut self, value: &str) {
+            value.clone_into(&mut self.error_val);
+        }
+    }
 
     fn get_repl() -> Repl {
         Repl {
