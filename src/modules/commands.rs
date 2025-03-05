@@ -54,15 +54,16 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
 
 fn h(l: &mut impl Logger) {
     l.print("Available commands:");
-    l.print("t | table: Generate a table of values for a given equation.");
-    l.print("g | graph: Display a graph for a given equation.");
-    l.print("o | graph options: Update graph display options.");
-    l.print("ag | animated graph: Show an animated graph.");
-    l.print("ig | interactive graph: Show an interactive graph.");
-    l.print("la | linear algebra: Perform linear algebra operations.");
-    l.print("c | cube | 3d: Display a 3D cube.");
-    l.print("qbc: Generate a cubic Bezier curve.");
-    l.print("cbc: Generate a quadratic Bezier curve.");
+    l.print(":g  | :graph -> graphing mode");
+    l.print(":t  | :table -> table mode");
+    l.print(":o  | :graph options -> graph options mode");
+    l.print(":ag | :animated graph -> animated graph mode");
+    l.print(":ig | :interactive graph -> interactive graph mode");
+    l.print(":la | :linear algebra -> linear algebra mode");
+    l.print(":c  | :cube | :3d -> renders an animated cube to the terminal");
+    l.print(":qbc -> quadratic bezier curve");
+    l.print(":cbc -> cubic bezier curve");
+    l.print(":q  | :quit -> exits the repl session");
 }
 
 fn cbc(l: &mut impl Logger, go: &GraphOptions) {
