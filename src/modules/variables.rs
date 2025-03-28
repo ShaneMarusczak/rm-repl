@@ -31,8 +31,17 @@ pub(crate) fn insert_ans_vars(s: &str, repl: &repl::Repl) -> String {
     s
 }
 
+pub(crate) fn is_variable_new(str: &str) -> bool {
+    if let Some(stripped) = str.strip_prefix("let ") {
+        if !stripped.starts_with('=') && stripped.contains(" = ") && !stripped.ends_with('=') {
+            let equal_sign_count = stripped.matches('=').count();
+            return equal_sign_count == 1;
+        }
+    }
+    false
+}
+
 pub(crate) fn is_variable(str: &str) -> bool {
-    let str = str.to_owned();
     match (
         str.len() >= 2,
         str.starts_with(char::is_alphabetic) && str.starts_with(char::is_uppercase),

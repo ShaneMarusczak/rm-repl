@@ -1,0 +1,54 @@
+todos:
+
+syntax highlight as you type
+
+bring in linefeed or rustyline, just not stdin
+
+make a logo
+
+command auto complete?
+
+make scrollable graph
+
+improve variables, not just lowercase
+
+save graph to a txt file? some other file type? svg?
+
+command autocomplete?
+
+if you type a command without a :,
+try to run the line (maybe a variable)
+but print "Was that a command?"
+
+get into homebrew
+
+floor, ceil, sum functions
+
+degrees and radians support
+
+auto insert *    (5sin(x) -> 5 * sin(x))
+
+improve error messages
+
+rust_chain.sh
+
+improve the prompt, make it more mathy
+
+make graph more colorful.
+
+make cube react to arrow
+
+themes
+
+refactor commands to match terminal-chat,
+macro registering
+
+https://kalker.xyz/
+
+user defined functions
+
+slope (takes an eq and an x)
+
+make modulo 'mod'
+
+auto insert closing paren 
