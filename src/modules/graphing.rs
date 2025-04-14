@@ -215,7 +215,7 @@ pub(crate) fn get_normalized_points(
 
     threads
         .into_iter()
-        .flat_map(|thread| thread.join().unwrap())
+        .flat_map(|thread| thread.join().unwrap_or_else(|_| Vec::new()))
 }
 
 ///assumes nums is in ascending order

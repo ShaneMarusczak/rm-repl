@@ -89,7 +89,9 @@ pub(crate) fn get_braille(go: &GraphOptions, matrix: &mut CellMatrix) -> CharMat
 
             if (row / 4) < chars.len() {
                 let braille_char = '⠀' as u32 + braille_char_bits as u32;
-                chars[row / 4].push(std::char::from_u32(braille_char).unwrap());
+                if let Some(v) = std::char::from_u32(braille_char) {
+                    chars[row / 4].push(v);
+                }
             }
         }
     }

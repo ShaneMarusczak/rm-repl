@@ -9,7 +9,7 @@ use crate::modules::{
     common::*,
     cube::cube,
     graphing::graph,
-    inputs::{get_g_inputs, get_matrix_input, get_numerical_input, get_text_input},
+    inputs::{get_g_inputs, get_matrix_input, get_numerical_input},
     logger::Logger,
     repl::Repl,
     string_maker::make_table_string,
@@ -19,7 +19,10 @@ use crossterm::event::{read, Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use crossterm::{cursor, ExecutableCommand};
 
-use super::bezier_curve::{cubic_bezier, quadratic_bezier};
+use super::{
+    bezier_curve::{cubic_bezier, quadratic_bezier},
+    inputs::read_user_input,
+};
 
 pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
     let go = GraphOptions {
@@ -129,8 +132,8 @@ fn t(l: &mut impl Logger) {
 
     if let Ok(points) = points {
         l.print(&make_table_string(points));
-    } else {
-        l.eprint(&points.unwrap_err());
+    } else if let Err(p) = points {
+        l.eprint(&p);
     }
 }
 
@@ -140,8 +143,8 @@ fn g(l: &mut impl Logger, go: &GraphOptions) {
 
     if let Ok(g) = g {
         l.print(&g);
-    } else {
-        l.eprint(&g.unwrap_err());
+    } else if let Err(g) = g {
+        l.eprint(&g);
     }
 }
 
@@ -158,15 +161,14 @@ fn ag(l: &mut impl Logger, go: &GraphOptions) {
         for n in 0..100 {
             std::thread::sleep(std::time::Duration::from_millis(90));
 
-            stdout
-                .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
-                .unwrap();
-            let g = graph(&eq, x_min - n as f32, x_max + n as f32, go).unwrap();
+            let _ = stdout.execute(cursor::MoveUp(new_lines as u16));
 
-            l.print(&g);
+            if let Ok(g) = graph(&eq, x_min - n as f32, x_max + n as f32, go) {
+                l.print(&g);
+            }
         }
-    } else {
-        l.eprint(&g.unwrap_err());
+    } else if let Err(g) = g {
+        l.eprint(&g);
     }
 }
 
@@ -180,78 +182,79 @@ fn ig(l: &mut impl Logger, go: &GraphOptions) {
         l.print(&g);
 
         let new_lines = g.chars().filter(|c| c.eq_ignore_ascii_case(&'\n')).count() + 1;
-        enable_raw_mode().unwrap();
+        let _ = enable_raw_mode();
 
         loop {
-            match read().unwrap() {
-                Event::Key(KeyEvent {
+            match read() {
+                Ok(Event::Key(KeyEvent {
                     code: KeyCode::Right,
                     modifiers: KeyModifiers::NONE,
                     kind: _,
                     state: _,
-                }) => {
-                    disable_raw_mode().unwrap();
+                })) => {
+                    let _ = disable_raw_mode();
                     x_min += 1.0;
                     x_max += 1.0;
-                    stdout
-                        .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
-                        .unwrap();
-                    let g = graph(&eq, x_min, x_max, go).unwrap();
+                    let _ = stdout.execute(cursor::MoveUp(new_lines as u16));
 
-                    l.print(&g);
-                    enable_raw_mode().unwrap();
+                    if let Ok(g) = graph(&eq, x_min, x_max, go) {
+                        l.print(&g);
+                    }
+
+                    let _ = enable_raw_mode();
                 }
 
-                Event::Key(KeyEvent {
+                Ok(Event::Key(KeyEvent {
                     code: KeyCode::Left,
                     modifiers: KeyModifiers::NONE,
                     kind: _,
                     state: _,
-                }) => {
-                    disable_raw_mode().unwrap();
+                })) => {
+                    let _ = disable_raw_mode();
                     x_min -= 1.0;
                     x_max -= 1.0;
-                    stdout
-                        .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
-                        .unwrap();
-                    let g = graph(&eq, x_min, x_max, go).unwrap();
 
-                    l.print(&g);
-                    enable_raw_mode().unwrap();
+                    let _ = stdout.execute(cursor::MoveUp(new_lines as u16));
+
+                    if let Ok(g) = graph(&eq, x_min, x_max, go) {
+                        l.print(&g);
+                    }
+
+                    let _ = enable_raw_mode();
                 }
 
-                Event::Key(KeyEvent {
+                Ok(Event::Key(KeyEvent {
                     code: KeyCode::Char('q'),
                     modifiers: KeyModifiers::NONE,
                     kind: _,
                     state: _,
-                }) => break,
+                })) => break,
                 _ => continue,
             }
         }
-        disable_raw_mode().unwrap();
-    } else {
-        l.eprint(&g.unwrap_err());
+        let _ = disable_raw_mode();
+    } else if let Err(g) = g {
+        l.eprint(&g);
     }
 }
 
 fn la(l: &mut impl Logger) {
     loop {
-        let op_code = get_text_input("operation: ", l);
-
-        match op_code.as_str() {
-            "vs" | "vector sum" => {
-                let m = get_matrix_input(l);
-                let sum = vector_sum(&m);
-                l.print(&format!("{sum:#?}"));
+        if let Ok(op_code) = read_user_input("operation: ") {
+            match op_code.as_str() {
+                "vs" | "vector sum" => {
+                    let m = get_matrix_input(l);
+                    let sum = vector_sum(&m);
+                    l.print(&format!("{sum:#?}"));
+                }
+                "vm" | "vector mean" => {
+                    let m = get_matrix_input(l);
+                    let sum = vector_mean(&m);
+                    l.print(&format!("{sum:#?}"));
+                }
+                "b" | "back" => break,
+                _ => l.eprint("invalid operation"),
             }
-            "vm" | "vector mean" => {
-                let m = get_matrix_input(l);
-                let sum = vector_mean(&m);
-                l.print(&format!("{sum:#?}"));
-            }
-            "b" | "back" => break,
-            _ => l.eprint("invalid operation"),
         }
     }
 }

@@ -4,16 +4,16 @@ use crate::modules::{logger::Logger, repl};
 
 pub(crate) fn handle_var(str: &str, repl: &mut repl::Repl, l: &mut impl Logger) {
     let mut iter = str.chars();
-    let name = iter.next().unwrap();
+    if let Some(name) = iter.next() {
+        let mut exp: String = iter.filter(|c| !c.eq(&'=')).collect();
 
-    let mut exp: String = iter.filter(|c| !c.eq(&'=')).collect();
+        exp = insert_ans_vars(&exp, repl);
 
-    exp = insert_ans_vars(&exp, repl);
-
-    if let Ok(v) = calculate(exp.trim()) {
-        repl.variables.insert(name, v.to_string());
-    } else {
-        l.eprint("invalid variable value");
+        if let Ok(v) = calculate(exp.trim()) {
+            repl.variables.insert(name, v.to_string());
+        } else {
+            l.eprint("invalid variable value");
+        }
     }
 }
 
@@ -31,15 +31,15 @@ pub(crate) fn insert_ans_vars(s: &str, repl: &repl::Repl) -> String {
     s
 }
 
-pub(crate) fn is_variable_new(str: &str) -> bool {
-    if let Some(stripped) = str.strip_prefix("let ") {
-        if !stripped.starts_with('=') && stripped.contains(" = ") && !stripped.ends_with('=') {
-            let equal_sign_count = stripped.matches('=').count();
-            return equal_sign_count == 1;
-        }
-    }
-    false
-}
+// pub(crate) fn is_variable_new(str: &str) -> bool {
+//     if let Some(stripped) = str.strip_prefix("let ") {
+//         if !stripped.starts_with('=') && stripped.contains(" = ") && !stripped.ends_with('=') {
+//             let equal_sign_count = stripped.matches('=').count();
+//             return equal_sign_count == 1;
+//         }
+//     }
+//     false
+// }
 
 pub(crate) fn is_variable(str: &str) -> bool {
     match (

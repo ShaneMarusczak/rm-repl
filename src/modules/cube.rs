@@ -67,24 +67,22 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
     l.print(&frame);
 
     loop {
-        enable_raw_mode().unwrap();
-        let v = poll(Duration::from_millis(20)).unwrap();
-        disable_raw_mode().unwrap();
+        let _ = enable_raw_mode();
+        let v = poll(Duration::from_millis(20));
+        let _ = disable_raw_mode();
 
-        if v {
-            match read().unwrap() {
-                Event::Key(KeyEvent {
+        if v.is_ok_and(|v| v) {
+            match read() {
+                Ok(Event::Key(KeyEvent {
                     code: KeyCode::Char('q'),
                     modifiers: KeyModifiers::NONE,
                     kind: _,
                     state: _,
-                }) => break,
+                })) => break,
                 _ => continue,
             }
         } else {
-            stdout
-                .execute(cursor::MoveUp(new_lines.try_into().unwrap()))
-                .unwrap();
+            let _ = stdout.execute(cursor::MoveUp(new_lines as u16));
 
             rotate_points(&mut points, 1.2, 1.5, -1.8);
 

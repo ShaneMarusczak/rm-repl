@@ -3,10 +3,23 @@ name = "rmr"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+panic = "abort"
+lto = true
+opt-level = 'z'
+codegen-units = 1
+strip = true
+debug = false
+incremental = false
+
+[lints.clippy]
+panic = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
 
 [dependencies]
- crossterm = "0.26.1"
- num-traits = "0.2.17"
- num_cpus = "1.15.0"
- rusty-maths = { git = "https://github.com/ShaneMarusczak/rusty-maths" }
+crossterm = "0.26.1"
+linefeed = { version = "0.6.0", default-features = false }
+num-traits = { version = "0.2.17", default-features = false }
+num_cpus = { version = "1.15.0", default-features = false }
+rusty-maths = { git = "https://github.com/ShaneMarusczak/rusty-maths" }

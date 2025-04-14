@@ -1,42 +1,52 @@
-use std::cmp::Ordering;
 use std::process::Command;
+use std::{cmp::Ordering, error::Error};
 
 use rusty_maths::equation_analyzer::calculator::plot;
 
 use crate::modules::{
-    commands, common::GraphOptions, evaluate, graphing, inputs, logger::Logger, repl,
+    commands, common::GraphOptions, evaluate, graphing, logger::Logger, repl,
     string_maker::make_table_string, variables,
 };
+
+use linefeed::{DefaultTerminal, Interface, ReadResult};
 
 pub(crate) fn as_repl(l: &mut impl Logger) {
     l.print("\n--rusty maths repl--\n");
 
     let mut repl = repl::Repl::new(0.0, false, 140);
 
-    loop {
-        let line = inputs::get_text_input(">>", l);
-
-        if line.is_empty() {
-            continue;
-        } else if let Some(stripped) = line.strip_prefix(':') {
-            match stripped {
-                "q" | "quit" => break,
-                "clear" => {
-                    Command::new("clear")
-                        .status()
-                        .expect("clear command failed");
-                }
-                _ => commands::run_command(stripped, l, &mut repl),
+    if let Ok(interface) = build_interface() {
+        while let Ok(ReadResult::Input(line)) = interface.read_line() {
+            if line.trim().is_empty() {
+                continue;
             }
-        } else if !repl.previous_answer_valid && line.contains("ans") {
-            l.eprint("invalid use of 'ans'");
-            continue;
-        } else if variables::is_variable(&line) {
-            variables::handle_var(&line, &mut repl, l);
-        } else {
-            evaluate::evaluate(&line, &mut repl, l);
+
+            interface.add_history(line.clone());
+
+            if let Some(stripped) = line.strip_prefix(':') {
+                match stripped {
+                    "q" | "quit" => break,
+                    "clear" => {
+                        let _ = Command::new("clear").status();
+                    }
+                    _ => commands::run_command(stripped, l, &mut repl),
+                }
+            } else if !repl.previous_answer_valid && line.contains("ans") {
+                l.eprint("invalid use of 'ans'");
+                continue;
+            } else if variables::is_variable(&line) {
+                variables::handle_var(&line, &mut repl, l);
+            } else {
+                evaluate::evaluate(&line, &mut repl, l);
+            }
         }
     }
+}
+
+fn build_interface() -> Result<Interface<DefaultTerminal>, Box<dyn Error>> {
+    let interface = Interface::new("terminal chat interface")?;
+    interface.set_prompt("\x1b[38;2;196;85;8m>> \x1b[0m")?;
+    Ok(interface)
 }
 
 pub(crate) fn as_cli_tool(args: &[String], l: &mut impl Logger) {
@@ -58,8 +68,8 @@ pub(crate) fn as_cli_tool(args: &[String], l: &mut impl Logger) {
                         let g = graphing::graph(&args[2], x_min, x_max, &go);
                         if let Ok(g) = g {
                             l.print(&g);
-                        } else {
-                            l.eprint(&g.unwrap_err());
+                        } else if let Err(g) = g {
+                            l.eprint(&g);
                         }
                     } else {
                         l.eprint(&format!(
@@ -84,8 +94,8 @@ pub(crate) fn as_cli_tool(args: &[String], l: &mut impl Logger) {
                         if let Ok(points) = points {
                             let t = make_table_string(points);
                             l.print(&t);
-                        } else {
-                            l.eprint(&points.unwrap_err());
+                        } else if let Err(p) = points {
+                            l.eprint(&p);
                         }
                     } else {
                         l.eprint(&format!(

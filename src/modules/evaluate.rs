@@ -10,9 +10,9 @@ pub(crate) fn evaluate(line: &str, repl: &mut Repl, l: &mut impl Logger) {
         repl.set_previous_answer(&v);
         let f_v = format!("{v:.2}");
         l.print(f_v.trim_end_matches(".00"));
-    } else {
+    } else if let Err(v) = val {
         repl.invalidate_prev_answer();
-        l.eprint(&val.unwrap_err());
+        l.eprint(&v);
     }
 }
 
@@ -21,7 +21,7 @@ pub(crate) fn simple_evaluate(line: &str, l: &mut impl Logger) {
     if let Ok(v) = val {
         let f_v = format!("{v:.2}");
         l.print(f_v.trim_end_matches(".00"));
-    } else {
-        l.eprint(&val.unwrap_err());
+    } else if let Err(v) = val {
+        l.eprint(&v);
     }
 }
