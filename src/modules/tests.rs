@@ -195,7 +195,7 @@ mod rmr_tests {
         //Then
         assert!(repl.variables.is_empty());
         assert!(test_logger.val.is_empty());
-        assert_eq!(test_logger.error_val, "invalid variable value");
+        assert_eq!(test_logger.error_val, "Invalid variable value");
     }
 
     #[test]
@@ -396,7 +396,7 @@ mod rmr_tests {
 
         //Then
         assert!(&test_logger.val.is_empty());
-        assert_eq!("invalid use of rmr", test_logger.error_val);
+        assert_eq!("Invalid use of rmr. Usage: rmr [expression] or rmr -g/-t [args]", test_logger.error_val);
     }
 
     #[test]

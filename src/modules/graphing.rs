@@ -9,6 +9,13 @@ use crate::modules::{
 use rayon::prelude::*;
 use rusty_maths::{equation_analyzer::calculator::plot, utilities::abs_f32};
 
+// Sampling factor divisor for determining point density in graphs
+const SAMPLING_DIVISOR: f32 = 16.0;
+// Maximum allowed difference between actual and default y-range
+const Y_RANGE_TOLERANCE: f32 = 50.0;
+// Padding added to y-axis bounds
+const Y_AXIS_PADDING: f32 = 0.5;
+
 pub(crate) fn graph(
     eq_str: &str,
     x_min: f32,
@@ -21,8 +28,7 @@ pub(crate) fn graph(
     let mut master_y_min: f32 = f32::MAX;
     let mut master_y_max: f32 = f32::MIN;
 
-    //still fiddling trying to find the correct value
-    let sampling_factor: f32 = (go.width / 16) as f32;
+    let sampling_factor: f32 = (go.width as f32) / SAMPLING_DIVISOR;
 
     let x_step: f32 = (x_max - x_min) / ((go.width as f32) * sampling_factor);
 
@@ -40,13 +46,13 @@ pub(crate) fn graph(
         let y_min_actual: f32 = get_y_min(&points);
         let y_max_actual: f32 = get_y_max(&points);
 
-        y_max = if abs_f32(y_max - y_max_actual) < 50_f32 {
+        y_max = if abs_f32(y_max - y_max_actual) < Y_RANGE_TOLERANCE {
             y_max_actual
         } else {
             y_max
         };
 
-        y_min = if abs_f32(y_min - y_min_actual) < 50_f32 {
+        y_min = if abs_f32(y_min - y_min_actual) < Y_RANGE_TOLERANCE {
             y_min_actual
         } else {
             y_min
@@ -77,8 +83,8 @@ pub(crate) fn graph(
         }
     }
 
-    master_y_max += 0.5;
-    master_y_min -= 0.5;
+    master_y_max += Y_AXIS_PADDING;
+    master_y_min -= Y_AXIS_PADDING;
 
     let mut matrix: CellMatrix = make_cell_matrix(go);
 

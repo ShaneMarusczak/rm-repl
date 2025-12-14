@@ -12,7 +12,10 @@ use crate::modules::logger::Logger;
 
 pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
     let mut stdout = std::io::stdout();
-    execute!(stdout, Hide).unwrap();
+    if execute!(stdout, Hide).is_err() {
+        l.eprint("Failed to hide cursor");
+        return;
+    }
 
     let ver_gap = (go.height / 4) as f32;
     let hor_gap = (go.width / 4) as f32;
@@ -90,7 +93,8 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
             l.print(&frame);
         }
     }
-    execute!(stdout, Show).unwrap();
+    // Try to show cursor again, ignore error if terminal is unavailable
+    let _ = execute!(stdout, Show);
 }
 
 fn rotate_points(
@@ -148,7 +152,8 @@ fn make_cube(go: &GraphOptions, p: &[[f32; 3]], edges: &[[usize; 2]]) -> String 
     let braille_chars: CharMatrix = get_braille(go, &mut matrix);
 
     let lines = braille_chars.iter().fold(String::new(), |mut acc, s| {
-        writeln!(acc, "{}", s.iter().collect::<String>(),).unwrap();
+        // Writing to String never fails, safe to ignore
+        let _ = writeln!(acc, "{}", s.iter().collect::<String>());
         acc
     });
     lines

@@ -48,7 +48,7 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
         "cbc" => cbc(l, &go),
         "h" | "help" => h(l),
         _ => {
-            l.eprint(&format!("invalid command {line}"));
+            l.eprint(&format!("Invalid command '{line}'. Type ':h' for help."));
         }
     }
 }
@@ -184,6 +184,7 @@ fn ig(l: &mut impl Logger, go: &GraphOptions) {
         l.print(&g);
 
         let new_lines = g.chars().filter(|c| c.eq_ignore_ascii_case(&'\n')).count() + 1;
+        // Enable raw mode for key capture - ignore errors, continue without interactive mode
         let _ = enable_raw_mode();
 
         loop {
@@ -255,7 +256,7 @@ fn la(l: &mut impl Logger) {
                     l.print(&format!("{sum:#?}"));
                 }
                 "b" | "back" => break,
-                _ => l.eprint("invalid operation"),
+                _ => l.eprint("Invalid operation. Valid: 'vs' (vector sum), 'vm' (vector mean), 'b' (back)"),
             }
         }
     }

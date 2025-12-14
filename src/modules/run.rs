@@ -27,12 +27,13 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
                 match stripped {
                     "q" | "quit" => break,
                     "clear" => {
+                        // Clear screen - ignore errors as it's not critical
                         let _ = Command::new("clear").status();
                     }
                     _ => commands::run_command(stripped, l, &mut repl),
                 }
             } else if !repl.previous_answer_valid && line.contains("ans") {
-                l.eprint("invalid use of 'ans'");
+                l.eprint("Invalid use of 'ans': no previous answer available");
                 continue;
             } else if variables::is_variable(&line) {
                 variables::handle_var(&line, &mut repl, l);
@@ -44,7 +45,7 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
 }
 
 fn build_interface() -> Result<Interface<DefaultTerminal>, Box<dyn Error>> {
-    let interface = Interface::new("terminal chat interface")?;
+    let interface = Interface::new("rmr-repl")?;
     interface.set_prompt("\x1b[38;2;196;85;8m>> \x1b[0m")?;
     Ok(interface)
 }
@@ -113,7 +114,7 @@ pub(crate) fn as_cli_tool(args: &[String], l: &mut impl Logger) {
                     ));
                 }
             }
-            _ => l.eprint("invalid use of rmr"),
+            _ => l.eprint("Invalid use of rmr. Usage: rmr [expression] or rmr -g/-t [args]"),
         },
 
         Ordering::Less => l.eprint("Usage: rmr [expression]"),
