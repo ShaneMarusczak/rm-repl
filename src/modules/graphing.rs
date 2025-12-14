@@ -1,15 +1,12 @@
 use crate::modules::{
     common::{
         get_braille, make_cell_matrix, CellMatrix, CharMatrix, GraphOptions, NormalizedPoint,
-        PointMatrix,
+        Point, PointMatrix,
     },
     string_maker::make_graph_string,
 };
 
-use rusty_maths::{
-    equation_analyzer::calculator::{plot, Point},
-    utilities::abs_f32,
-};
+use rusty_maths::{equation_analyzer::calculator::plot, utilities::abs_f32};
 use std::sync::Arc;
 use std::thread;
 
@@ -35,7 +32,11 @@ pub(crate) fn graph(
     let mut points_collection: PointMatrix = Vec::with_capacity(eqs.len());
 
     for eq in eqs {
-        let points: Vec<Point> = plot(eq, x_min, x_max, x_step)?;
+        let rm_points = plot(eq, x_min, x_max, x_step)?;
+        let points: Vec<Point> = rm_points
+            .into_iter()
+            .map(|p| Point::new(p.x, p.y))
+            .collect();
 
         let y_min_actual: f32 = get_y_min(&points);
         let y_max_actual: f32 = get_y_max(&points);

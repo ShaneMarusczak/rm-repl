@@ -3,8 +3,6 @@ use rusty_maths::{
     linear_algebra::{vector_mean, vector_sum},
 };
 
-use rusty_maths::equation_analyzer::calculator::Point;
-
 use crate::modules::{
     common::*,
     cube::cube,
@@ -130,7 +128,11 @@ fn t(l: &mut impl Logger) {
 
     let points = plot(&eq, x_min, x_max, step_size);
 
-    if let Ok(points) = points {
+    if let Ok(rm_points) = points {
+        let points: Vec<_> = rm_points
+            .into_iter()
+            .map(|p| Point::new(p.x, p.y))
+            .collect();
         l.print(&make_table_string(points));
     } else if let Err(p) = points {
         l.eprint(&p);

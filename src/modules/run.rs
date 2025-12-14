@@ -91,7 +91,11 @@ pub(crate) fn as_cli_tool(args: &[String], l: &mut impl Logger) {
                 {
                     if x_min < x_max {
                         let points = plot(&args[2], x_min, x_max, step_size);
-                        if let Ok(points) = points {
+                        if let Ok(rm_points) = points {
+                            let points: Vec<_> = rm_points
+                                .into_iter()
+                                .map(|p| crate::modules::common::Point::new(p.x, p.y))
+                                .collect();
                             let t = make_table_string(points);
                             l.print(&t);
                         } else if let Err(p) = points {

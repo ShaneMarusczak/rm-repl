@@ -2,10 +2,8 @@
 mod rmr_tests {
     use std::collections::HashMap;
 
-    use rusty_maths::equation_analyzer::calculator::Point;
-
     use crate::modules::{
-        common::GraphOptions,
+        common::{GraphOptions, Point},
         evaluate::{evaluate, simple_evaluate},
         graphing::graph,
         logger::Logger,
