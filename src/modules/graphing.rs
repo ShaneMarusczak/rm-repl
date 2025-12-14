@@ -6,9 +6,25 @@ use crate::modules::{
     string_maker::make_graph_string,
 };
 
+use rayon::prelude::*;
 use rusty_maths::{equation_analyzer::calculator::plot, utilities::abs_f32};
-use std::sync::Arc;
-use std::thread;
+
+// Sampling factor divisor for determining point density in graphs
+const SAMPLING_DIVISOR: f32 = 16.0;
+// Maximum allowed difference between actual and default y-range
+const Y_RANGE_TOLERANCE: f32 = 50.0;
+// Padding added to y-axis bounds
+const Y_AXIS_PADDING: f32 = 0.5;
+
+// Tick mark display thresholds based on graph width
+const TICK_WIDTH_SMALL: usize = 76;
+const TICK_WIDTH_MEDIUM: usize = 151;
+const TICK_WIDTH_LARGE: usize = 301;
+// Maximum tick marks to display based on graph width
+const TICK_MAX_SMALL: usize = 80;
+const TICK_MAX_MEDIUM: usize = 160;
+const TICK_MAX_LARGE: usize = 300;
+const TICK_MAX_XLARGE: usize = 400;
 
 pub(crate) fn graph(
     eq_str: &str,
@@ -22,8 +38,7 @@ pub(crate) fn graph(
     let mut master_y_min: f32 = f32::MAX;
     let mut master_y_max: f32 = f32::MIN;
 
-    //still fiddling trying to find the correct value
-    let sampling_factor: f32 = (go.width / 16) as f32;
+    let sampling_factor: f32 = (go.width as f32) / SAMPLING_DIVISOR;
 
     let x_step: f32 = (x_max - x_min) / ((go.width as f32) * sampling_factor);
 
@@ -41,13 +56,13 @@ pub(crate) fn graph(
         let y_min_actual: f32 = get_y_min(&points);
         let y_max_actual: f32 = get_y_max(&points);
 
-        y_max = if abs_f32(y_max - y_max_actual) < 50_f32 {
+        y_max = if abs_f32(y_max - y_max_actual) < Y_RANGE_TOLERANCE {
             y_max_actual
         } else {
             y_max
         };
 
-        y_min = if abs_f32(y_min - y_min_actual) < 50_f32 {
+        y_min = if abs_f32(y_min - y_min_actual) < Y_RANGE_TOLERANCE {
             y_min_actual
         } else {
             y_min
@@ -78,8 +93,8 @@ pub(crate) fn graph(
         }
     }
 
-    master_y_max += 0.5;
-    master_y_min -= 0.5;
+    master_y_max += Y_AXIS_PADDING;
+    master_y_min -= Y_AXIS_PADDING;
 
     let mut matrix: CellMatrix = make_cell_matrix(go);
 
@@ -124,14 +139,14 @@ fn check_add_tick_marks(
     y_max: f32,
     go: &GraphOptions,
 ) {
-    let max = if go.width < 76 {
-        80
-    } else if go.width > 75 && go.width < 151 {
-        160
-    } else if go.width > 150 && go.width < 301 {
-        300
+    let max = if go.width < TICK_WIDTH_SMALL {
+        TICK_MAX_SMALL
+    } else if go.width < TICK_WIDTH_MEDIUM {
+        TICK_MAX_MEDIUM
+    } else if go.width < TICK_WIDTH_LARGE {
+        TICK_MAX_LARGE
     } else {
-        400
+        TICK_MAX_XLARGE
     };
 
     let x_range = x_min.ceil() as isize..=x_max.floor() as isize;
@@ -177,50 +192,34 @@ pub(crate) fn get_normalized_points(
 ) -> impl Iterator<Item = NormalizedPoint> {
     let y_step = (y_max - y_min) / height as f32;
 
-    let y_values: Arc<Vec<f32>> = Arc::new(
-        (0..=height)
-            .map(|n| y_step.mul_add(n as f32, y_min))
-            .collect(),
-    );
-
-    let num_threads: usize = num_cpus::get().max(1);
-    let chunk_size: usize = (points.len() / num_threads) + 1;
-
-    let mut threads = Vec::with_capacity(num_threads);
-
-    let points_chunks: PointMatrix = points.chunks(chunk_size).map(|p| p.into()).collect();
+    let y_values: Vec<f32> = (0..=height)
+        .map(|n| y_step.mul_add(n as f32, y_min))
+        .collect();
 
     let inverse_samp_factor = 1.0 / sampling_factor;
 
-    for (c, chunk) in points_chunks.into_iter().enumerate() {
-        let y_values: Arc<Vec<f32>> = Arc::clone(&y_values);
+    points
+        .par_iter()
+        .enumerate()
+        .map(|(i, point)| {
+            let x = ((i as f32) * inverse_samp_factor) as usize;
+            let y = binary_search(&y_values, point.y);
 
-        threads.push(thread::spawn(move || {
-            let mut thread_results: Vec<NormalizedPoint> = Vec::with_capacity(chunk_size);
-            let chunk_offset = c * chunk_size;
-
-            for (i, point) in chunk.iter().enumerate() {
-                let x = (((i + chunk_offset) as f32) * inverse_samp_factor) as usize;
-
-                let y = binary_search(&y_values, point.y);
-
-                thread_results.push(NormalizedPoint {
-                    x,
-                    y,
-                    y_acc: point.y,
-                });
+            NormalizedPoint {
+                x,
+                y,
+                y_acc: point.y,
             }
-            thread_results
-        }));
-    }
-
-    threads
+        })
+        .collect::<Vec<_>>()
         .into_iter()
-        .flat_map(|thread| thread.join().unwrap_or_else(|_| Vec::new()))
 }
 
 ///assumes nums is in ascending order
 fn binary_search(nums: &[f32], num: f32) -> usize {
+    if nums.is_empty() {
+        return 0;
+    }
     if nums[0] >= num {
         return 0;
     }

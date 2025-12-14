@@ -24,7 +24,8 @@ pub(crate) fn make_table_string(points: Vec<Point>) -> String {
     );
 
     let middle_rows = points.iter().fold(String::new(), |mut acc, p| {
-        writeln!(
+        // Writing to String never fails, safe to ignore
+        let _ = writeln!(
             acc,
             "{}{}{:<4} {} {:<6}{}{}",
             VERTICAL_BAR,
@@ -34,8 +35,7 @@ pub(crate) fn make_table_string(points: Vec<Point>) -> String {
             ((p.y * 100.0).round() / 100.0),
             UNDERLINE_END,
             VERTICAL_BAR
-        )
-        .unwrap();
+        );
         acc
     });
 
@@ -62,14 +62,14 @@ pub(crate) fn make_graph_string(
     let top_line = format!("{}{}{}{:.2}\n", UPPER_LEFT, gap_str, UPPER_RIGHT, y_max);
 
     let middle_lines = chars.iter().fold(String::new(), |mut acc, s| {
-        writeln!(
+        // Writing to String never fails, safe to ignore
+        let _ = writeln!(
             acc,
             "{}{}{}",
             VERTICAL_BAR,
             s.iter().collect::<String>(),
             VERTICAL_BAR
-        )
-        .unwrap();
+        );
         acc
     });
 
@@ -93,14 +93,14 @@ pub(crate) fn make_curve_string(
     let top_line = format!("{}{}{}{:.2}\n", UPPER_LEFT, gap_str, UPPER_RIGHT, y_min);
 
     let middle_lines = chars.iter().fold(String::new(), |mut acc, s| {
-        writeln!(
+        // Writing to String never fails, safe to ignore
+        let _ = writeln!(
             acc,
             "{}{}{}",
             VERTICAL_BAR,
             s.iter().collect::<String>(),
             VERTICAL_BAR
-        )
-        .unwrap();
+        );
         acc
     });
 

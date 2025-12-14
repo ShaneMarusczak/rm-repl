@@ -195,7 +195,7 @@ mod rmr_tests {
         //Then
         assert!(repl.variables.is_empty());
         assert!(test_logger.val.is_empty());
-        assert_eq!(test_logger.error_val, "invalid variable value");
+        assert_eq!(test_logger.error_val, "Invalid variable value");
     }
 
     #[test]
@@ -396,7 +396,7 @@ mod rmr_tests {
 
         //Then
         assert!(&test_logger.val.is_empty());
-        assert_eq!("invalid use of rmr", test_logger.error_val);
+        assert_eq!("Invalid use of rmr. Usage: rmr [expression] or rmr -g/-t [args]", test_logger.error_val);
     }
 
     #[test]
@@ -542,5 +542,485 @@ mod rmr_tests {
             "x-min: `-2`, x-max: `a` and step_size: `1` must all be valid numbers",
             test_logger.error_val
         );
+    }
+
+    // ============================================================================
+    // Variable Replacement Word Boundary Tests (Critical Bug Fix Verification)
+    // ============================================================================
+
+    #[test]
+    fn variable_does_not_replace_in_function_names() {
+        //Given - variable 'S' should not replace 's' in 'sin'
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        handle_var("S=5", &mut repl, &mut test_logger);
+
+        //When - use 's' in a function name
+        evaluate("sin(1)", &mut repl, &mut test_logger);
+
+        //Then - should evaluate sin(1), not 5in(1)
+        assert!(test_logger.val.contains("0.8")); // sin(1) ≈ 0.841
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn variable_replacement_respects_word_boundaries() {
+        //Given
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        handle_var("X=10", &mut repl, &mut test_logger);
+
+        //When - X in "X+5" should be replaced, but x in "max" should not
+        evaluate("max(X, 5)", &mut repl, &mut test_logger);
+
+        //Then
+        assert_eq!(test_logger.val, "10"); // max(10, 5) = 10
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn variable_in_standalone_context() {
+        //Given
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        handle_var("A=42", &mut repl, &mut test_logger);
+
+        //When - just the variable by itself
+        evaluate("A", &mut repl, &mut test_logger);
+
+        //Then
+        assert_eq!(test_logger.val, "42");
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn variable_in_expression_with_operators() {
+        //Given
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        handle_var("B=7", &mut repl, &mut test_logger);
+
+        //When - variable with operators around it
+        evaluate("B+B*B", &mut repl, &mut test_logger);
+
+        //Then - 7 + 7*7 = 7 + 49 = 56
+        assert_eq!(test_logger.val, "56");
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn variable_does_not_replace_in_concatenated_functions() {
+        //Given - variable A should not interfere with function names
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        handle_var("A=100", &mut repl, &mut test_logger);
+
+        //When - using tan function (has 'a' in it)
+        evaluate("tan(1)", &mut repl, &mut test_logger);
+
+        //Then - should evaluate tan(1), not t100n(1)
+        assert!(test_logger.val.contains("1.5")); // tan(1) ≈ 1.557
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    // ============================================================================
+    // Variable Detection Edge Case Tests
+    // ============================================================================
+
+    #[test]
+    fn is_variable_lowercase_first_char() {
+        //Given
+        let line = "a=1";
+
+        //When
+        let result = is_variable(line);
+
+        //Then - should be false, must start with uppercase
+        assert!(!result);
+    }
+
+    #[test]
+    fn is_variable_number_first_char() {
+        //Given
+        let line = "1A=5";
+
+        //When
+        let result = is_variable(line);
+
+        //Then - should be false
+        assert!(!result);
+    }
+
+    #[test]
+    fn is_variable_special_char_first() {
+        //Given
+        let line = "$A=5";
+
+        //When
+        let result = is_variable(line);
+
+        //Then - should be false
+        assert!(!result);
+    }
+
+    #[test]
+    fn is_variable_with_space_after_name() {
+        //Given
+        let line = "A =5";
+
+        //When
+        let result = is_variable(line);
+
+        //Then - should be true
+        assert!(result);
+    }
+
+    #[test]
+    fn is_variable_no_equals() {
+        //Given
+        let line = "ABC";
+
+        //When
+        let result = is_variable(line);
+
+        //Then - should be false, no = sign
+        assert!(!result);
+    }
+
+    #[test]
+    fn is_variable_too_short() {
+        //Given
+        let line = "A";
+
+        //When
+        let result = is_variable(line);
+
+        //Then - should be false, need at least "A="
+        assert!(!result);
+    }
+
+    #[test]
+    fn is_variable_multiple_equals() {
+        //Given
+        let line = "A=1=2";
+
+        //When
+        let result = is_variable(line);
+
+        //Then - should still be true (first = is what matters)
+        assert!(result);
+    }
+
+    // ============================================================================
+    // Nested Variadic Function Tests (rusty-maths upgrade showcase)
+    // ============================================================================
+
+    #[test]
+    fn nested_variadic_max_min() {
+        //Given
+        let mut test_logger = get_test_logger();
+
+        //When - nested max and min functions
+        simple_evaluate("max(min(10,20),5,max(3,7))", &mut test_logger);
+
+        //Then - min(10,20)=10, max(3,7)=7, max(10,5,7)=10
+        assert_eq!(test_logger.val, "10");
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn deeply_nested_functions() {
+        //Given
+        let mut test_logger = get_test_logger();
+
+        //When
+        simple_evaluate("max(1,min(5,max(2,3)))", &mut test_logger);
+
+        //Then - max(2,3)=3, min(5,3)=3, max(1,3)=3
+        assert_eq!(test_logger.val, "3");
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn nested_min_functions() {
+        //Given
+        let mut test_logger = get_test_logger();
+
+        //When
+        simple_evaluate("min(min(10,5),min(8,3))", &mut test_logger);
+
+        //Then - min(10,5)=5, min(8,3)=3, min(5,3)=3
+        assert_eq!(test_logger.val, "3");
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn nested_with_arithmetic() {
+        //Given
+        let mut test_logger = get_test_logger();
+
+        //When
+        simple_evaluate("max(2+3, min(10,7))", &mut test_logger);
+
+        //Then - 2+3=5, min(10,7)=7, max(5,7)=7
+        assert_eq!(test_logger.val, "7");
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    // ============================================================================
+    // Multiple Equation Graph Tests
+    // ============================================================================
+
+    #[test]
+    fn graph_multiple_equations() {
+        //Given - two equations separated by |
+        let eq_str = "y=x|y=2*x";
+        let x_min = -2f32;
+        let x_max = 2f32;
+        let go = get_graph_options();
+
+        //When
+        let g = graph(eq_str, x_min, x_max, &go);
+
+        //Then - should produce a valid graph with both equations
+        assert!(g.is_ok());
+        assert!(is_graph_string(&g.unwrap()));
+    }
+
+    #[test]
+    fn graph_three_equations() {
+        //Given
+        let eq_str = "y=x|y=x^2|y=x^3";
+        let x_min = -1f32;
+        let x_max = 1f32;
+        let go = get_graph_options();
+
+        //When
+        let g = graph(eq_str, x_min, x_max, &go);
+
+        //Then
+        assert!(g.is_ok());
+        assert!(is_graph_string(&g.unwrap()));
+    }
+
+    // ============================================================================
+    // Bezier Curve Tests
+    // ============================================================================
+
+    #[test]
+    fn quadratic_bezier_renders() {
+        //Given
+        let mut test_logger = get_test_logger();
+        let go = get_graph_options();
+
+        let p1 = Point::new(10.0, 10.0);
+        let p2 = Point::new(50.0, 80.0);
+        let p3 = Point::new(90.0, 10.0);
+
+        //When
+        use crate::modules::bezier_curve::quadratic_bezier;
+        quadratic_bezier(p1, p2, p3, &go, &mut test_logger);
+
+        //Then - should produce output
+        assert!(!test_logger.val.is_empty());
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn cubic_bezier_renders() {
+        //Given
+        let mut test_logger = get_test_logger();
+        let go = get_graph_options();
+
+        let p1 = Point::new(10.0, 10.0);
+        let p2 = Point::new(30.0, 80.0);
+        let p3 = Point::new(70.0, 80.0);
+        let p4 = Point::new(90.0, 10.0);
+
+        //When
+        use crate::modules::bezier_curve::cubic_bezier;
+        cubic_bezier(p1, p2, p3, p4, &go, &mut test_logger);
+
+        //Then
+        assert!(!test_logger.val.is_empty());
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    // ============================================================================
+    // Error Message Improvement Tests
+    // ============================================================================
+
+    #[test]
+    fn invalid_command_shows_help_hint() {
+        //Given
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        //When
+        use crate::modules::commands::run_command;
+        run_command("invalidcmd", &mut test_logger, &mut repl);
+
+        //Then
+        assert!(test_logger.error_val.contains("Type ':h' for help"));
+    }
+
+    #[test]
+    fn error_messages_are_capitalized() {
+        //Given
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        //When - try to use undefined variable in variable assignment
+        handle_var("A=B", &mut repl, &mut test_logger);
+
+        //Then - error message should start with capital letter
+        assert!(test_logger.error_val.starts_with("Invalid"));
+    }
+
+    // ============================================================================
+    // Edge Case Tests
+    // ============================================================================
+
+    #[test]
+    fn evaluate_with_extra_whitespace() {
+        //Given
+        let mut test_logger = get_test_logger();
+
+        //When - expression with extra spaces
+        simple_evaluate("  2   +   2  ", &mut test_logger);
+
+        //Then
+        assert_eq!(test_logger.val, "4");
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn graph_with_whitespace_in_equation() {
+        //Given
+        let eq_str = "y = x ^ 2";
+        let x_min = -2f32;
+        let x_max = 2f32;
+        let go = get_graph_options();
+
+        //When
+        let g = graph(eq_str, x_min, x_max, &go);
+
+        //Then - should handle whitespace
+        assert!(g.is_ok());
+    }
+
+    #[test]
+    fn division_by_zero_in_evaluation() {
+        //Given
+        let mut test_logger = get_test_logger();
+
+        //When
+        simple_evaluate("1/0", &mut test_logger);
+
+        //Then - should either error or return inf (depending on rusty-maths behavior)
+        // We just verify it doesn't panic
+        assert!(!test_logger.val.is_empty() || !test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn very_large_numbers() {
+        //Given
+        let mut test_logger = get_test_logger();
+
+        //When
+        simple_evaluate("999999*999999", &mut test_logger);
+
+        //Then - should handle large numbers
+        assert!(!test_logger.val.is_empty());
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn very_small_numbers() {
+        //Given
+        let mut test_logger = get_test_logger();
+
+        //When
+        simple_evaluate("0.000001*0.000001", &mut test_logger);
+
+        //Then
+        assert!(!test_logger.val.is_empty());
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn negative_numbers_in_expressions() {
+        //Given
+        let mut test_logger = get_test_logger();
+
+        //When
+        simple_evaluate("-5*-3", &mut test_logger);
+
+        //Then - should be 15
+        assert_eq!(test_logger.val, "15");
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn multiple_variables_in_expression() {
+        //Given
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        handle_var("A=5", &mut repl, &mut test_logger);
+        handle_var("B=3", &mut repl, &mut test_logger);
+
+        //When
+        evaluate("A*B+A", &mut repl, &mut test_logger);
+
+        //Then - 5*3+5 = 20
+        assert_eq!(test_logger.val, "20");
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn ans_with_multiple_operations() {
+        //Given
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        //When - chain of operations using ans
+        evaluate("10", &mut repl, &mut test_logger);
+        assert_eq!(test_logger.val, "10");
+
+        evaluate("ans*2", &mut repl, &mut test_logger);
+        assert_eq!(test_logger.val, "20");
+
+        evaluate("ans+5", &mut repl, &mut test_logger);
+
+        //Then - should be 25
+        assert_eq!(test_logger.val, "25");
+        assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn empty_equation_in_graph() {
+        //Given
+        let eq_str = "";
+        let x_min = -1f32;
+        let x_max = 1f32;
+        let go = get_graph_options();
+
+        //When
+        let g = graph(eq_str, x_min, x_max, &go);
+
+        //Then - should return an error
+        assert!(g.is_err());
+    }
+
+    #[test]
+    fn graph_with_invalid_equation() {
+        //Given
+        let eq_str = "y=invalid";
+        let x_min = -1f32;
+        let x_max = 1f32;
+        let go = get_graph_options();
+
+        //When
+        let g = graph(eq_str, x_min, x_max, &go);
+
+        //Then - should return an error
+        assert!(g.is_err());
     }
 }

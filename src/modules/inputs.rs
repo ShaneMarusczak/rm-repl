@@ -25,44 +25,54 @@ pub(crate) fn get_matrix_input(l: &mut impl Logger) -> Matrix {
 
 pub(crate) fn get_numerical_input<T>(msg: &str, l: &mut impl Logger) -> T
 where
-    T: num_traits::Num,
+    T: std::str::FromStr,
+    <T as std::str::FromStr>::Err: std::fmt::Display,
 {
     loop {
-        if let Ok(s) = read_user_input(msg) {
-            if let Ok(x) = <T>::from_str_radix(&s, 10) {
-                return x;
-            }
-            l.eprint(&format!("{s} is not a valid number"));
+        match read_user_input(msg) {
+            Ok(s) => match s.parse::<T>() {
+                Ok(x) => return x,
+                Err(_) => l.eprint(&format!("'{s}' is not a valid number")),
+            },
+            Err(e) => l.eprint(&format!("Failed to read input: {e}")),
         }
     }
 }
 
 pub fn read_user_input(prompt: &str) -> Result<String, Box<dyn Error>> {
-    let interface = Interface::new("tc")?;
+    let interface = Interface::new("rmr-input")?;
     interface.set_prompt(prompt)?;
-    if let ReadResult::Input(line) = interface.read_line()? {
-        return Ok(line.trim().to_string());
+    loop {
+        match interface.read_line()? {
+            ReadResult::Input(line) => return Ok(line.trim().to_string()),
+            ReadResult::Eof => return Err("End of input".into()),
+            ReadResult::Signal(_) => continue,
+        }
     }
-    unreachable!()
 }
 
 pub(crate) fn get_g_inputs(l: &mut impl Logger) -> (String, f32, f32) {
-    if let Ok(eq) = read_user_input("equation: ") {
-        let mut x_min = get_numerical_input("x min: ", l);
+    loop {
+        match read_user_input("equation: ") {
+            Ok(eq) => {
+                let mut x_min = get_numerical_input("x min: ", l);
+                let mut x_max = get_numerical_input("x max: ", l);
 
-        let mut x_max = get_numerical_input("x max: ", l);
+                while x_min >= x_max {
+                    l.eprint(&format!(
+                        "x min `{x_min}` must be less than x max `{x_max}`"
+                    ));
 
-        while x_min >= x_max {
-            l.print(&format!(
-                "x min `{x_min}` must be less than x max `{x_max}`"
-            ));
+                    x_min = get_numerical_input("x min: ", l);
+                    x_max = get_numerical_input("x max: ", l);
+                }
 
-            x_min = get_numerical_input("x min: ", l);
-
-            x_max = get_numerical_input("x max: ", l);
+                return (eq, x_min, x_max);
+            }
+            Err(e) => {
+                l.eprint(&format!("Failed to read equation: {e}"));
+                continue;
+            }
         }
-
-        return (eq, x_min, x_max);
     }
-    unreachable!()
 }
