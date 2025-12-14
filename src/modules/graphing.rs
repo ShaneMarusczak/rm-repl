@@ -16,6 +16,16 @@ const Y_RANGE_TOLERANCE: f32 = 50.0;
 // Padding added to y-axis bounds
 const Y_AXIS_PADDING: f32 = 0.5;
 
+// Tick mark display thresholds based on graph width
+const TICK_WIDTH_SMALL: usize = 76;
+const TICK_WIDTH_MEDIUM: usize = 151;
+const TICK_WIDTH_LARGE: usize = 301;
+// Maximum tick marks to display based on graph width
+const TICK_MAX_SMALL: usize = 80;
+const TICK_MAX_MEDIUM: usize = 160;
+const TICK_MAX_LARGE: usize = 300;
+const TICK_MAX_XLARGE: usize = 400;
+
 pub(crate) fn graph(
     eq_str: &str,
     x_min: f32,
@@ -129,14 +139,14 @@ fn check_add_tick_marks(
     y_max: f32,
     go: &GraphOptions,
 ) {
-    let max = if go.width < 76 {
-        80
-    } else if go.width > 75 && go.width < 151 {
-        160
-    } else if go.width > 150 && go.width < 301 {
-        300
+    let max = if go.width < TICK_WIDTH_SMALL {
+        TICK_MAX_SMALL
+    } else if go.width < TICK_WIDTH_MEDIUM {
+        TICK_MAX_MEDIUM
+    } else if go.width < TICK_WIDTH_LARGE {
+        TICK_MAX_LARGE
     } else {
-        400
+        TICK_MAX_XLARGE
     };
 
     let x_range = x_min.ceil() as isize..=x_max.floor() as isize;
@@ -207,6 +217,9 @@ pub(crate) fn get_normalized_points(
 
 ///assumes nums is in ascending order
 fn binary_search(nums: &[f32], num: f32) -> usize {
+    if nums.is_empty() {
+        return 0;
+    }
     if nums[0] >= num {
         return 0;
     }
