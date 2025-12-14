@@ -6,9 +6,8 @@ use crate::modules::{
     string_maker::make_graph_string,
 };
 
+use rayon::prelude::*;
 use rusty_maths::{equation_analyzer::calculator::plot, utilities::abs_f32};
-use std::sync::Arc;
-use std::thread;
 
 pub(crate) fn graph(
     eq_str: &str,
@@ -177,46 +176,27 @@ pub(crate) fn get_normalized_points(
 ) -> impl Iterator<Item = NormalizedPoint> {
     let y_step = (y_max - y_min) / height as f32;
 
-    let y_values: Arc<Vec<f32>> = Arc::new(
-        (0..=height)
-            .map(|n| y_step.mul_add(n as f32, y_min))
-            .collect(),
-    );
-
-    let num_threads: usize = num_cpus::get().max(1);
-    let chunk_size: usize = (points.len() / num_threads) + 1;
-
-    let mut threads = Vec::with_capacity(num_threads);
-
-    let points_chunks: PointMatrix = points.chunks(chunk_size).map(|p| p.into()).collect();
+    let y_values: Vec<f32> = (0..=height)
+        .map(|n| y_step.mul_add(n as f32, y_min))
+        .collect();
 
     let inverse_samp_factor = 1.0 / sampling_factor;
 
-    for (c, chunk) in points_chunks.into_iter().enumerate() {
-        let y_values: Arc<Vec<f32>> = Arc::clone(&y_values);
+    points
+        .par_iter()
+        .enumerate()
+        .map(|(i, point)| {
+            let x = ((i as f32) * inverse_samp_factor) as usize;
+            let y = binary_search(&y_values, point.y);
 
-        threads.push(thread::spawn(move || {
-            let mut thread_results: Vec<NormalizedPoint> = Vec::with_capacity(chunk_size);
-            let chunk_offset = c * chunk_size;
-
-            for (i, point) in chunk.iter().enumerate() {
-                let x = (((i + chunk_offset) as f32) * inverse_samp_factor) as usize;
-
-                let y = binary_search(&y_values, point.y);
-
-                thread_results.push(NormalizedPoint {
-                    x,
-                    y,
-                    y_acc: point.y,
-                });
+            NormalizedPoint {
+                x,
+                y,
+                y_acc: point.y,
             }
-            thread_results
-        }));
-    }
-
-    threads
+        })
+        .collect::<Vec<_>>()
         .into_iter()
-        .flat_map(|thread| thread.join().unwrap_or_else(|_| Vec::new()))
 }
 
 ///assumes nums is in ascending order
