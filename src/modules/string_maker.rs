@@ -1,4 +1,4 @@
-use rusty_maths::equation_analyzer::calculator::Point;
+use crate::modules::common::Point;
 use std::fmt::Write;
 
 const UPPER_LEFT: &str = "┌";

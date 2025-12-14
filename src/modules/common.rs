@@ -1,4 +1,19 @@
-use rusty_maths::equation_analyzer::calculator::Point;
+/// Represents a point in 2D space for plotting equations.
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) struct Point {
+    /// The x-coordinate
+    pub x: f32,
+    /// The y-coordinate (result of evaluating the equation at x)
+    pub y: f32,
+}
+
+impl Point {
+    /// Creates a new Point with the given coordinates.
+    pub(crate) fn new(x: f32, y: f32) -> Point {
+        Point { x, y }
+    }
+}
+
 pub(crate) type CellMatrix = Vec<Vec<Cell>>;
 pub(crate) type CharMatrix = Vec<Vec<char>>;
 pub(crate) type PointMatrix = Vec<Vec<Point>>;

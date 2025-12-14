@@ -1,9 +1,8 @@
 use super::{
-    common::{get_braille, make_cell_matrix, CellMatrix, CharMatrix, GraphOptions},
+    common::{get_braille, make_cell_matrix, CellMatrix, CharMatrix, GraphOptions, Point},
     logger::Logger,
     string_maker::make_curve_string,
 };
-use rusty_maths::equation_analyzer::calculator::Point;
 
 const STEP_SIZE: f32 = 0.001;
 
