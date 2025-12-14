@@ -63,7 +63,7 @@ pub(crate) fn quadratic_bezier(
     let height = go.height as f32;
 
     let mut points = vec![p1.clone()];
-    add_control_point_markers(&mut points, &[p2.clone()], width, height);
+    add_control_point_markers(&mut points, std::slice::from_ref(&p2), width, height);
     points.push(p3.clone());
 
     let mut n = 0.0;
