@@ -2,8 +2,6 @@ todos:
 
 syntax highlight as you type
 
-bring in linefeed or rustyline, just not stdin
-
 make a logo
 
 command auto complete?
