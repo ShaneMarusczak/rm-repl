@@ -7,6 +7,7 @@ pub(crate) struct Repl {
 
     pub(crate) height: usize,
     pub(crate) width: usize,
+    pub(crate) precision: usize,
 }
 
 //the Repl object is a user session object
@@ -21,6 +22,7 @@ impl Repl {
             variables: HashMap::new(),
             height: width / 2,
             width,
+            precision: 2,
         }
     }
 

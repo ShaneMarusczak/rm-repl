@@ -8,8 +8,10 @@ pub(crate) fn evaluate(line: &str, repl: &mut Repl, l: &mut impl Logger) {
     let val = calculate(&line_internal);
     if let Ok(v) = val {
         repl.set_previous_answer(&v);
-        let f_v = format!("{v:.2}");
-        l.print(f_v.trim_end_matches(".00"));
+        let p = repl.precision;
+        let f_v = format!("{v:.p$}");
+        let trailing = format!(".{}", "0".repeat(p));
+        l.print(f_v.trim_end_matches(&trailing));
     } else if let Err(v) = val {
         repl.invalidate_prev_answer();
         l.eprint(&v);
