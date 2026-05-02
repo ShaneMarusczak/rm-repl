@@ -23,6 +23,11 @@ use super::{
 };
 
 pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
+    if let Some(n) = line.strip_prefix("p ").or_else(|| line.strip_prefix("precision ")) {
+        set_precision(n, repl, l);
+        return;
+    }
+
     let go = GraphOptions {
         y_min: -7.,
         y_max: 7.,
@@ -64,7 +69,18 @@ fn h(l: &mut impl Logger) {
     l.print(":c  | :cube | :3d -> renders an animated cube to the terminal");
     l.print(":qbc -> quadratic bezier curve");
     l.print(":cbc -> cubic bezier curve");
+    l.print(":p  | :precision <n> -> set decimal precision (e.g. :p 4)");
     l.print(":q  | :quit -> exits the repl session");
+}
+
+fn set_precision(n: &str, repl: &mut Repl, l: &mut impl Logger) {
+    match n.trim().parse::<usize>() {
+        Ok(p) => {
+            repl.precision = p;
+            l.print(&format!("Precision set to {p}"));
+        }
+        Err(_) => l.eprint(&format!("'{n}' is not a valid precision value")),
+    }
 }
 
 fn cbc(l: &mut impl Logger, go: &GraphOptions) {

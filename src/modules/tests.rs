@@ -34,6 +34,7 @@ mod rmr_tests {
             variables: HashMap::new(),
             width: 240,
             height: 120,
+            precision: 2,
         }
     }
 
