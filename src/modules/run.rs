@@ -46,7 +46,7 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
 
 fn build_interface() -> Result<Interface<DefaultTerminal>, Box<dyn Error>> {
     let interface = Interface::new("rmr-repl")?;
-    interface.set_prompt("\x1b[38;2;196;85;8m>> \x1b[0m")?;
+    interface.set_prompt("\x01\x1b[38;2;196;85;8m\x02>> \x01\x1b[0m\x02")?;
     Ok(interface)
 }
 
