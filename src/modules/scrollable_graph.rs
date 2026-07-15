@@ -189,6 +189,7 @@ pub(crate) mod test_support {
     use super::*;
 
     /// Test-only doorway to the pure marker math.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn marker_cell_for(
         cursor_x: f32,
         y: Option<f32>,
