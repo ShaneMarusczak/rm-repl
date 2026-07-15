@@ -8,7 +8,6 @@ command auto complete?
 
 make scrollable graph
 
-improve variables, not just lowercase
 
 save graph to a txt file? some other file type? svg?
 
@@ -43,7 +42,6 @@ macro registering
 
 https://kalker.xyz/
 
-user defined functions
 
 slope (takes an eq and an x)
 

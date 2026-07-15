@@ -1,8 +1,10 @@
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::panic)]
 mod rmr_tests {
-    use std::collections::HashMap;
+    use rusty_maths::equation_analyzer::Definitions;
 
     use crate::modules::{
+        bindings::{self, handle_let, looks_like_binding, LetSource},
         common::{GraphOptions, Point},
         error_render,
         evaluate::{evaluate, simple_evaluate},
@@ -11,7 +13,6 @@ mod rmr_tests {
         repl::Repl,
         run::as_cli_tool,
         string_maker::make_table_string,
-        variables::{handle_var, is_variable},
     };
 
     pub(crate) struct TestLogger {
@@ -29,14 +30,16 @@ mod rmr_tests {
     }
 
     fn get_repl() -> Repl {
-        Repl {
-            previous_answer: 0.0,
-            previous_answer_valid: false,
-            variables: HashMap::new(),
-            width: 240,
-            height: 120,
-            precision: 2,
-        }
+        Repl::new(240)
+    }
+
+    fn empty_defs() -> Definitions {
+        Definitions::new()
+    }
+
+    /// Run a `let` line as if typed at the prompt.
+    fn let_line(line: &str, repl: &mut Repl, l: &mut TestLogger) -> bool {
+        handle_let(line, repl, l, LetSource::Interactive)
     }
 
     fn get_test_logger() -> TestLogger {
@@ -89,8 +92,7 @@ mod rmr_tests {
         //Then
         assert_eq!(test_logger.val, "-7");
         assert!(test_logger.error_val.is_empty());
-        assert!(repl.previous_answer_valid);
-        assert_eq!(repl.previous_answer, -7f32);
+        assert_eq!(repl.defs.value("ans"), Some(-7f32));
     }
 
     #[test]
@@ -113,30 +115,32 @@ mod rmr_tests {
                 error_render::CARET_END
             )
         );
-        assert!(!repl.previous_answer_valid);
-        assert_eq!(repl.previous_answer, 0.0);
+        // A failed evaluation never bound `ans`.
+        assert_eq!(repl.defs.value("ans"), None);
     }
 
     #[test]
-    fn evaluate_error_after_ans_substitution_reprints_evaluated_text() {
-        //Given: a valid previous answer so `ans` gets substituted
+    fn evaluate_error_with_ans_carets_the_typed_line() {
+        //Given: `ans` is bound from a previous answer
         let (mut repl, mut test_logger) = get_repl_and_logger();
         evaluate("3 + 4", &mut repl, &mut test_logger);
 
-        //When: the error span refers to the substituted text, which no
-        //longer matches the echoed line
+        //When: `ans` is a real binding now — no text substitution — so the
+        //error span refers to the line exactly as typed
         evaluate("ans + foo(3)", &mut repl, &mut test_logger);
 
-        //Then: the evaluated text is reprinted and the caret points into it
+        //Then: the caret sits under `foo` in the echoed line (prompt 3 + 6)
         assert_eq!(
             test_logger.error_val,
             format!(
-                "7 + foo(3)\n{}{}^^^{}\nInvalid function name foo",
-                " ".repeat(4),
+                "{}{}^^^{}\nInvalid function name foo",
+                " ".repeat(9),
                 error_render::CARET_START,
                 error_render::CARET_END
             )
         );
+        // And `ans` survives the failed evaluation.
+        assert_eq!(repl.defs.value("ans"), Some(7.0));
     }
 
     #[test]
@@ -145,7 +149,7 @@ mod rmr_tests {
         let go = get_graph_options();
 
         //When
-        let result = graph("y=x|y=q", -1.0, 1.0, &go);
+        let result = graph("y=x|y=q", -1.0, 1.0, &go, &empty_defs());
 
         //Then the span maps onto the full entered text: `q` is at char 6
         let span = result.err().and_then(|e| e.span).map(|s| (s.start, s.end));
@@ -188,98 +192,350 @@ mod rmr_tests {
         );
     }
 
-    #[test]
-    fn is_variable_test() {
-        //Given
-        let line = "A=1";
-
-        //When
-        let is_var = is_variable(line);
-
-        //Then
-        assert!(is_var);
-    }
+    // ============================================================================
+    // `let` binding tests
+    // ============================================================================
 
     #[test]
-    fn is_not_variable_test() {
-        //Given
-        let line = "3+3";
-
-        //When
-        let is_var = is_variable(line);
-
-        //Then
-        assert!(!is_var);
-    }
-
-    #[test]
-    fn is_not_variable_test_2() {
-        //Given
-        let line = "A  =3";
-
-        //When
-        let is_var = is_variable(line);
-
-        //Then
-        assert!(!is_var);
-    }
-
-    #[test]
-    fn is_not_variable_test_3() {
-        //Given
-        let line = "A+2";
-
-        //When
-        let is_var = is_variable(line);
-
-        //Then
-        assert!(!is_var);
-    }
-
-    #[test]
-    fn bad_var_test() {
-        //Given
+    fn let_value_binds_and_evaluates() {
         let (mut repl, mut test_logger) = get_repl_and_logger();
-        //B is not previously defined
-        let line = "A=B";
 
-        //When
-        handle_var(line, &mut repl, &mut test_logger);
-        //Then
-        assert!(repl.variables.is_empty());
-        assert!(test_logger.val.is_empty());
-        assert_eq!(test_logger.error_val, "Invalid variable value");
+        assert!(let_line("let a = 3", &mut repl, &mut test_logger));
+        assert_eq!(test_logger.val, "a = 3");
+        assert_eq!(repl.defs.value("a"), Some(3.0));
+
+        evaluate("a + 1", &mut repl, &mut test_logger);
+        assert_eq!(test_logger.val, "4");
+        assert!(test_logger.error_val.is_empty());
     }
 
     #[test]
-    fn var_ans_test() {
-        //Given
+    fn let_value_evaluates_eagerly() {
         let (mut repl, mut test_logger) = get_repl_and_logger();
-        let line_1 = "1+1";
-        let line_2 = "A=1";
-        let line_3 = "ans + A";
 
-        //When
-        evaluate(line_1, &mut repl, &mut test_logger);
-        //Then
-        assert!(repl.previous_answer_valid);
-        assert_eq!(repl.previous_answer, 2.0);
-        assert_eq!(test_logger.val, "2");
+        assert!(let_line("let a = 2 + 1", &mut repl, &mut test_logger));
+        assert_eq!(repl.defs.value("a"), Some(3.0));
+
+        // `k` captures a's value at definition time, not a reference.
+        assert!(let_line("let k = a * 2", &mut repl, &mut test_logger));
+        assert!(let_line("let a = 100", &mut repl, &mut test_logger));
+        assert_eq!(repl.defs.value("k"), Some(6.0));
+    }
+
+    #[test]
+    fn let_function_binds_and_evaluates() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        assert!(let_line("let g(x) = 2x^2", &mut repl, &mut test_logger));
+        assert_eq!(test_logger.val, "g(x) = 2x^2");
+        assert_eq!(repl.defs.function_body("g"), Some("2x^2"));
+
+        evaluate("g(3)", &mut repl, &mut test_logger);
+        assert_eq!(test_logger.val, "18");
         assert!(test_logger.error_val.is_empty());
+    }
 
-        //When
-        handle_var(line_2, &mut repl, &mut test_logger);
-        //Then
-        assert!(repl.variables.contains_key(&'A'));
-        assert_eq!("1", repl.variables.get(&'A').unwrap());
+    #[test]
+    fn let_function_resolves_values_late() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
 
-        //When
-        evaluate(line_3, &mut repl, &mut test_logger);
-        //Then
-        assert!(repl.previous_answer_valid);
-        assert_eq!(repl.previous_answer, 3.0);
-        assert_eq!(test_logger.val, "3");
+        let_line("let a = 3", &mut repl, &mut test_logger);
+        let_line("let g(x) = a * x", &mut repl, &mut test_logger);
+
+        evaluate("g(2)", &mut repl, &mut test_logger);
+        assert_eq!(test_logger.val, "6");
+
+        // Redefining `a` changes what g computes — late binding.
+        let_line("let a = 5", &mut repl, &mut test_logger);
+        evaluate("g(2)", &mut repl, &mut test_logger);
+        assert_eq!(test_logger.val, "10");
+    }
+
+    #[test]
+    fn let_redefinition_notices_previous() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        let_line("let a = 3", &mut repl, &mut test_logger);
+        let_line("let a = 5", &mut repl, &mut test_logger);
+        assert_eq!(test_logger.val, "a = 5  (was 3)");
+
+        let_line("let a(x) = x + 1", &mut repl, &mut test_logger);
+        assert_eq!(test_logger.val, "a(x) = x + 1  (was 5)");
+        assert_eq!(repl.defs.value("a"), None);
+        assert_eq!(repl.defs.function_body("a"), Some("x + 1"));
+    }
+
+    #[test]
+    fn let_k_equals_ans_binds_the_value() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        evaluate("3 + 4", &mut repl, &mut test_logger);
+        assert!(let_line("let k = ans", &mut repl, &mut test_logger));
+        assert_eq!(test_logger.val, "k = 7");
+        assert_eq!(repl.defs.value("k"), Some(7.0));
+    }
+
+    #[test]
+    fn let_ans_is_rejected() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        assert!(!let_line("let ans = 3", &mut repl, &mut test_logger));
+        assert!(test_logger.error_val.contains("set automatically"));
+    }
+
+    #[test]
+    fn ans_banned_in_function_bodies() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        evaluate("3 + 4", &mut repl, &mut test_logger);
+        assert!(!let_line("let g(x) = ans + x", &mut repl, &mut test_logger));
+        assert!(test_logger.error_val.contains("bind it first: let k = ans"));
+        assert!(!repl.defs.contains("g"));
+
+        // ...but a *value* binding may use ans (evaluated eagerly), and a
+        // body may then use that value.
+        assert!(let_line("let k = ans", &mut repl, &mut test_logger));
+        assert!(let_line("let g(x) = k + x", &mut repl, &mut test_logger));
+    }
+
+    #[test]
+    fn let_function_requires_x_parameter() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        assert!(!let_line("let g(y) = 2y", &mut repl, &mut test_logger));
+        assert!(test_logger.error_val.contains("must be exactly '(x)'"));
+    }
+
+    #[test]
+    fn let_rejects_catalog_and_reserved_names() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        assert!(!let_line("let sin = 3", &mut repl, &mut test_logger));
+        assert!(test_logger.error_val.contains("built-in"));
+
+        assert!(!let_line("let x = 3", &mut repl, &mut test_logger));
+        assert!(test_logger.error_val.contains("reserved"));
+    }
+
+    #[test]
+    fn let_broken_body_keeps_old_binding() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        let_line("let g(x) = x + 1", &mut repl, &mut test_logger);
+        // `nope` is unknown, so the new body fails validation...
+        assert!(!let_line(
+            "let g(x) = nope * x",
+            &mut repl,
+            &mut test_logger
+        ));
+        assert!(test_logger.error_val.contains("Unknown name 'nope'"));
+        // ...and the working definition survives.
+        assert_eq!(repl.defs.function_body("g"), Some("x + 1"));
+    }
+
+    #[test]
+    fn let_value_rhs_error_carets_typed_line() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        assert!(!let_line("let a = foo(3)", &mut repl, &mut test_logger));
+        //          let a = foo(3)
+        // prompt(3) + offset of `foo` in the line (8) = 11
+        assert_eq!(
+            test_logger.error_val,
+            format!(
+                "{}{}^^^{}\nInvalid function name foo",
+                " ".repeat(11),
+                error_render::CARET_START,
+                error_render::CARET_END
+            )
+        );
+    }
+
+    #[test]
+    fn let_rejects_non_finite_values() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        assert!(!let_line("let a = 1/0", &mut repl, &mut test_logger));
+        assert!(test_logger.error_val.contains("finite"));
+        assert!(!repl.defs.contains("a"));
+    }
+
+    #[test]
+    fn call_time_body_error_reprints_body() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        let_line("let a = 3", &mut repl, &mut test_logger);
+        let_line("let g(x) = a * x", &mut repl, &mut test_logger);
+        bindings::undefine("a", &mut repl, &mut test_logger);
+
+        //When: g's body no longer resolves at call time
+        evaluate("g(2)", &mut repl, &mut test_logger);
+
+        //Then: the error reprints the definition and carets into the body
+        assert_eq!(
+            test_logger.error_val,
+            format!(
+                "in g(x) = a * x\n{}{}^{}\nUnknown name 'a'",
+                " ".repeat(10),
+                error_render::CARET_START,
+                error_render::CARET_END
+            )
+        );
+    }
+
+    #[test]
+    fn undefine_removes_bindings() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        let_line("let a = 3", &mut repl, &mut test_logger);
+        bindings::undefine("a", &mut repl, &mut test_logger);
+        assert!(!repl.defs.contains("a"));
+        assert_eq!(test_logger.val, "a removed");
+
+        bindings::undefine("a", &mut repl, &mut test_logger);
+        assert!(test_logger.error_val.contains("Nothing named 'a'"));
+
+        bindings::undefine("ans", &mut repl, &mut test_logger);
+        assert!(test_logger.error_val.contains("maintained automatically"));
+    }
+
+    #[test]
+    fn looks_like_binding_detects_missing_let() {
+        assert!(looks_like_binding("a = 3"));
+        assert!(looks_like_binding("g(x) = 2x^2"));
+        assert!(looks_like_binding("rate = 0.07"));
+
+        // Equation syntax and plain math are not bindings.
+        assert!(!looks_like_binding("y = 2x"));
+        assert!(!looks_like_binding("x = 3"));
+        assert!(!looks_like_binding("3 + 3"));
+        assert!(!looks_like_binding("2 ^ 3"));
+    }
+
+    #[test]
+    fn undef_command_routes_through_run_command() {
+        use crate::modules::commands::run_command;
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        let_line("let a = 3", &mut repl, &mut test_logger);
+        run_command("undef a", &mut test_logger, &mut repl);
+        assert_eq!(test_logger.val, "a removed");
+        assert!(!repl.defs.contains("a"));
+
+        run_command("undef", &mut test_logger, &mut repl);
+        assert!(test_logger.error_val.contains("Usage: :undef"));
+    }
+
+    #[test]
+    fn fns_shows_user_bindings() {
+        use crate::modules::commands::run_command;
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        let_line("let g(x) = 2x^2", &mut repl, &mut test_logger);
+
+        // `:fns g` describes the binding...
+        run_command("fns g", &mut test_logger, &mut repl);
+        assert!(test_logger.val.contains("function binding"));
+
+        // ...and `:fns <catalog name>` still works. (TestLogger keeps only
+        // the last printed line — the example line for a catalog entry.)
+        run_command("fns sin", &mut test_logger, &mut repl);
+        assert!(test_logger.val.contains("sin(0) = 0"));
+    }
+
+    #[test]
+    fn piped_user_function_evaluates() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        let_line("let g(x) = 2x^2", &mut repl, &mut test_logger);
+        evaluate("4 |> g", &mut repl, &mut test_logger);
+        assert_eq!(test_logger.val, "32");
         assert!(test_logger.error_val.is_empty());
+    }
+
+    #[test]
+    fn table_mode_error_reprints_body_for_broken_binding() {
+        // The `:t`/`:g` flows render through render_error_with_source; a
+        // body-tagged error must reprint the definition, not the equation.
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+        let_line("let a = 3", &mut repl, &mut test_logger);
+        let_line("let g(x) = a * x", &mut repl, &mut test_logger);
+        bindings::undefine("a", &mut repl, &mut test_logger);
+
+        let go = get_graph_options();
+        let err = graph("y = g(x)", -1.0, 1.0, &go, &repl.defs).unwrap_err();
+        let rendered = error_render::render_error_with_source("y = g(x)", &err, &repl.defs);
+        assert!(rendered.starts_with("in g(x) = a * x\n"));
+        assert!(rendered.contains("Unknown name 'a'"));
+    }
+
+    #[test]
+    fn recursive_function_errors_cleanly() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        let_line("let g(x) = g(x)", &mut repl, &mut test_logger);
+        evaluate("g(1)", &mut repl, &mut test_logger);
+        assert!(test_logger.error_val.contains("Call depth limit"));
+    }
+
+    #[test]
+    fn bindings_persist_and_reload() {
+        let path = std::env::temp_dir().join(format!("rmr_bindings_test_{}", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+
+        //Given a repl that persists to a temp file
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+        repl.bindings_path = Some(path.clone());
+
+        let_line("let a = 3", &mut repl, &mut test_logger);
+        let_line("let g(x) = a * x^2", &mut repl, &mut test_logger);
+        evaluate("21 + 21", &mut repl, &mut test_logger); // ans must NOT persist
+
+        let saved = std::fs::read_to_string(&path).unwrap_or_default();
+        assert_eq!(saved, "let a = 3\nlet g(x) = a * x^2\n");
+
+        //When a fresh repl loads the same file
+        let mut repl2 = get_repl();
+        repl2.bindings_path = Some(path.clone());
+        bindings::load(&mut repl2, &mut test_logger);
+
+        //Then the bindings are back and work
+        assert_eq!(repl2.defs.value("a"), Some(3.0));
+        assert_eq!(repl2.defs.function_body("g"), Some("a * x^2"));
+        assert_eq!(repl2.defs.value("ans"), None);
+        evaluate("g(2)", &mut repl2, &mut test_logger);
+        assert_eq!(test_logger.val, "12");
+
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn broken_persisted_line_warns_and_skips() {
+        let path =
+            std::env::temp_dir().join(format!("rmr_bindings_bad_test_{}", std::process::id()));
+        std::fs::write(&path, "let a = 3\nnot a let line\nlet b = 4\n").unwrap_or_default();
+
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+        repl.bindings_path = Some(path.clone());
+        bindings::load(&mut repl, &mut test_logger);
+
+        // The good lines loaded; the bad one warned.
+        assert_eq!(repl.defs.value("a"), Some(3.0));
+        assert_eq!(repl.defs.value("b"), Some(4.0));
+        assert!(test_logger.error_val.contains("ignored line 2"));
+
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn graph_sees_user_functions() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+        let_line("let g(x) = 2x^2", &mut repl, &mut test_logger);
+
+        let go = get_graph_options();
+        let g = graph("y = g(x)", -2.0, 2.0, &go, &repl.defs);
+        assert!(g.is_ok());
+        assert!(is_graph_string(&g.unwrap()));
     }
 
     #[test]
@@ -415,7 +671,7 @@ mod rmr_tests {
         assert!(&test_logger.val.is_empty());
         assert_eq!(
             format!(
-                "y=q\n  {}^{}\nInvalid input",
+                "y=q\n  {}^{}\nUnknown name 'q'",
                 error_render::CARET_START,
                 error_render::CARET_END
             ),
@@ -463,7 +719,10 @@ mod rmr_tests {
 
         //Then
         assert!(&test_logger.val.is_empty());
-        assert_eq!("Invalid use of rmr. Usage: rmr [expression] or rmr -g/-t [args]", test_logger.error_val);
+        assert_eq!(
+            "Invalid use of rmr. Usage: rmr [expression] or rmr -g/-t [args]",
+            test_logger.error_val
+        );
     }
 
     #[test]
@@ -476,7 +735,7 @@ mod rmr_tests {
         let go = get_graph_options();
 
         //When
-        let g = graph(eq_str, x_min, x_max, &go);
+        let g = graph(eq_str, x_min, x_max, &go, &empty_defs());
 
         //Then
         assert!(g.is_ok());
@@ -586,7 +845,7 @@ mod rmr_tests {
         assert!(&test_logger.val.is_empty());
         assert_eq!(
             format!(
-                "y=q\n  {}^{}\nInvalid input",
+                "y=q\n  {}^{}\nUnknown name 'q'",
                 error_render::CARET_START,
                 error_render::CARET_END
             ),
@@ -619,170 +878,46 @@ mod rmr_tests {
     }
 
     // ============================================================================
-    // Variable Replacement Word Boundary Tests (Critical Bug Fix Verification)
+    // Binding names flow through the real tokenizer (no text substitution)
     // ============================================================================
 
     #[test]
-    fn variable_does_not_replace_in_function_names() {
-        //Given - variable 'S' should not replace 's' in 'sin'
+    fn binding_does_not_corrupt_function_names() {
+        //Given a binding whose name appears inside catalog names
         let (mut repl, mut test_logger) = get_repl_and_logger();
+        let_line("let s = 5", &mut repl, &mut test_logger);
+        let_line("let a = 100", &mut repl, &mut test_logger);
 
-        handle_var("S=5", &mut repl, &mut test_logger);
-
-        //When - use 's' in a function name
+        //When using functions containing those letters
         evaluate("sin(1)", &mut repl, &mut test_logger);
+        assert!(test_logger.val.contains("0.8")); // sin(1) ≈ 0.841, not 5in(1)
 
-        //Then - should evaluate sin(1), not 5in(1)
-        assert!(test_logger.val.contains("0.8")); // sin(1) ≈ 0.841
+        evaluate("tan(1)", &mut repl, &mut test_logger);
+        assert!(test_logger.val.contains("1.5")); // tan(1) ≈ 1.557
+
+        evaluate("max(s, a)", &mut repl, &mut test_logger);
+        assert_eq!(test_logger.val, "100");
         assert!(test_logger.error_val.is_empty());
     }
 
     #[test]
-    fn variable_replacement_respects_word_boundaries() {
-        //Given
+    fn binding_in_standalone_context() {
         let (mut repl, mut test_logger) = get_repl_and_logger();
+        let_line("let a = 42", &mut repl, &mut test_logger);
 
-        handle_var("X=10", &mut repl, &mut test_logger);
-
-        //When - X in "X+5" should be replaced, but x in "max" should not
-        evaluate("max(X, 5)", &mut repl, &mut test_logger);
-
-        //Then
-        assert_eq!(test_logger.val, "10"); // max(10, 5) = 10
-        assert!(test_logger.error_val.is_empty());
-    }
-
-    #[test]
-    fn variable_in_standalone_context() {
-        //Given
-        let (mut repl, mut test_logger) = get_repl_and_logger();
-
-        handle_var("A=42", &mut repl, &mut test_logger);
-
-        //When - just the variable by itself
-        evaluate("A", &mut repl, &mut test_logger);
-
-        //Then
+        evaluate("a", &mut repl, &mut test_logger);
         assert_eq!(test_logger.val, "42");
         assert!(test_logger.error_val.is_empty());
     }
 
     #[test]
-    fn variable_in_expression_with_operators() {
-        //Given
+    fn binding_in_expression_with_operators() {
         let (mut repl, mut test_logger) = get_repl_and_logger();
+        let_line("let b = 7", &mut repl, &mut test_logger);
 
-        handle_var("B=7", &mut repl, &mut test_logger);
-
-        //When - variable with operators around it
-        evaluate("B+B*B", &mut repl, &mut test_logger);
-
-        //Then - 7 + 7*7 = 7 + 49 = 56
-        assert_eq!(test_logger.val, "56");
+        evaluate("b+b*b", &mut repl, &mut test_logger);
+        assert_eq!(test_logger.val, "56"); // 7 + 7*7
         assert!(test_logger.error_val.is_empty());
-    }
-
-    #[test]
-    fn variable_does_not_replace_in_concatenated_functions() {
-        //Given - variable A should not interfere with function names
-        let (mut repl, mut test_logger) = get_repl_and_logger();
-
-        handle_var("A=100", &mut repl, &mut test_logger);
-
-        //When - using tan function (has 'a' in it)
-        evaluate("tan(1)", &mut repl, &mut test_logger);
-
-        //Then - should evaluate tan(1), not t100n(1)
-        assert!(test_logger.val.contains("1.5")); // tan(1) ≈ 1.557
-        assert!(test_logger.error_val.is_empty());
-    }
-
-    // ============================================================================
-    // Variable Detection Edge Case Tests
-    // ============================================================================
-
-    #[test]
-    fn is_variable_lowercase_first_char() {
-        //Given
-        let line = "a=1";
-
-        //When
-        let result = is_variable(line);
-
-        //Then - should be false, must start with uppercase
-        assert!(!result);
-    }
-
-    #[test]
-    fn is_variable_number_first_char() {
-        //Given
-        let line = "1A=5";
-
-        //When
-        let result = is_variable(line);
-
-        //Then - should be false
-        assert!(!result);
-    }
-
-    #[test]
-    fn is_variable_special_char_first() {
-        //Given
-        let line = "$A=5";
-
-        //When
-        let result = is_variable(line);
-
-        //Then - should be false
-        assert!(!result);
-    }
-
-    #[test]
-    fn is_variable_with_space_after_name() {
-        //Given
-        let line = "A =5";
-
-        //When
-        let result = is_variable(line);
-
-        //Then - should be true
-        assert!(result);
-    }
-
-    #[test]
-    fn is_variable_no_equals() {
-        //Given
-        let line = "ABC";
-
-        //When
-        let result = is_variable(line);
-
-        //Then - should be false, no = sign
-        assert!(!result);
-    }
-
-    #[test]
-    fn is_variable_too_short() {
-        //Given
-        let line = "A";
-
-        //When
-        let result = is_variable(line);
-
-        //Then - should be false, need at least "A="
-        assert!(!result);
-    }
-
-    #[test]
-    fn is_variable_multiple_equals() {
-        //Given
-        let line = "A=1=2";
-
-        //When
-        let result = is_variable(line);
-
-        //Then - should still be true (first = is what matters)
-        assert!(result);
     }
 
     // ============================================================================
@@ -854,7 +989,7 @@ mod rmr_tests {
         let go = get_graph_options();
 
         //When
-        let g = graph(eq_str, x_min, x_max, &go);
+        let g = graph(eq_str, x_min, x_max, &go, &empty_defs());
 
         //Then - should produce a valid graph with both equations
         assert!(g.is_ok());
@@ -870,7 +1005,7 @@ mod rmr_tests {
         let go = get_graph_options();
 
         //When
-        let g = graph(eq_str, x_min, x_max, &go);
+        let g = graph(eq_str, x_min, x_max, &go, &empty_defs());
 
         //Then
         assert!(g.is_ok());
@@ -942,11 +1077,11 @@ mod rmr_tests {
         //Given
         let (mut repl, mut test_logger) = get_repl_and_logger();
 
-        //When - try to use undefined variable in variable assignment
-        handle_var("A=B", &mut repl, &mut test_logger);
+        //When - remove a binding that doesn't exist
+        bindings::undefine("zz", &mut repl, &mut test_logger);
 
         //Then - error message should start with capital letter
-        assert!(test_logger.error_val.starts_with("Invalid"));
+        assert!(test_logger.error_val.starts_with("Nothing"));
     }
 
     // ============================================================================
@@ -975,7 +1110,7 @@ mod rmr_tests {
         let go = get_graph_options();
 
         //When
-        let g = graph(eq_str, x_min, x_max, &go);
+        let g = graph(eq_str, x_min, x_max, &go, &empty_defs());
 
         //Then - should handle whitespace
         assert!(g.is_ok());
@@ -1034,15 +1169,15 @@ mod rmr_tests {
     }
 
     #[test]
-    fn multiple_variables_in_expression() {
+    fn multiple_bindings_in_expression() {
         //Given
         let (mut repl, mut test_logger) = get_repl_and_logger();
 
-        handle_var("A=5", &mut repl, &mut test_logger);
-        handle_var("B=3", &mut repl, &mut test_logger);
+        let_line("let a = 5", &mut repl, &mut test_logger);
+        let_line("let b = 3", &mut repl, &mut test_logger);
 
         //When
-        evaluate("A*B+A", &mut repl, &mut test_logger);
+        evaluate("a*b+a", &mut repl, &mut test_logger);
 
         //Then - 5*3+5 = 20
         assert_eq!(test_logger.val, "20");
@@ -1077,7 +1212,7 @@ mod rmr_tests {
         let go = get_graph_options();
 
         //When
-        let g = graph(eq_str, x_min, x_max, &go);
+        let g = graph(eq_str, x_min, x_max, &go, &empty_defs());
 
         //Then - should return an error
         assert!(g.is_err());
@@ -1092,7 +1227,7 @@ mod rmr_tests {
         let go = get_graph_options();
 
         //When
-        let g = graph(eq_str, x_min, x_max, &go);
+        let g = graph(eq_str, x_min, x_max, &go, &empty_defs());
 
         //Then - should return an error
         assert!(g.is_err());

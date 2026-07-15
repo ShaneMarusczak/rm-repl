@@ -27,11 +27,7 @@ fn add_control_point_markers(
 }
 
 // Helper function to render curve points to matrix
-fn render_curve(
-    points: Vec<Point>,
-    go: &GraphOptions,
-    l: &mut impl Logger,
-) {
+fn render_curve(points: Vec<Point>, go: &GraphOptions, l: &mut impl Logger) {
     let mut matrix: CellMatrix = make_cell_matrix(go);
 
     for p in points {

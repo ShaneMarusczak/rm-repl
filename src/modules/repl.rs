@@ -1,13 +1,18 @@
-use std::collections::HashMap;
+use rusty_maths::equation_analyzer::Definitions;
+use std::path::PathBuf;
 
 pub(crate) struct Repl {
-    pub(crate) previous_answer: f32,
-    pub(crate) previous_answer_valid: bool,
-    pub(crate) variables: HashMap<char, String>,
+    /// User `let` bindings — named values and functions — plus the
+    /// auto-maintained `ans` value. Evaluation runs against this set.
+    pub(crate) defs: Definitions,
 
     pub(crate) height: usize,
     pub(crate) width: usize,
     pub(crate) precision: usize,
+
+    /// Where bindings persist across sessions; `None` disables persistence
+    /// (tests, or no resolvable home directory).
+    pub(crate) bindings_path: Option<PathBuf>,
 }
 
 //the Repl object is a user session object
@@ -15,14 +20,13 @@ pub(crate) struct Repl {
 //give a session cache, debug flags
 
 impl Repl {
-    pub(crate) fn new(previous_answer: f32, previous_answer_valid: bool, width: usize) -> Self {
+    pub(crate) fn new(width: usize) -> Self {
         Self {
-            previous_answer,
-            previous_answer_valid,
-            variables: HashMap::new(),
+            defs: Definitions::new(),
             height: width / 2,
             width,
             precision: 2,
+            bindings_path: None,
         }
     }
 
@@ -30,12 +34,10 @@ impl Repl {
         self.height = width / 2;
         self.width = width;
     }
-    pub(crate) fn set_previous_answer(&mut self, value: &f32) {
-        self.previous_answer = *value;
-        self.previous_answer_valid = true;
-    }
-    pub(crate) fn invalidate_prev_answer(&mut self) {
-        self.previous_answer = 0.0;
-        self.previous_answer_valid = false;
+
+    /// Records a successful evaluation's result as the `ans` binding.
+    pub(crate) fn set_ans(&mut self, value: f32) {
+        // "ans" is a valid non-catalog name, so this cannot fail.
+        let _ = self.defs.define_value("ans", value);
     }
 }

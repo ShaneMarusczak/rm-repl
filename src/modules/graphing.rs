@@ -8,7 +8,7 @@ use crate::modules::{
 
 use rayon::prelude::*;
 use rusty_maths::{
-    equation_analyzer::{calculator::plot, EquationError},
+    equation_analyzer::{calculator::plot_with, Definitions, EquationError},
     utilities::abs_f32,
 };
 
@@ -34,6 +34,7 @@ pub(crate) fn graph(
     x_min: f32,
     x_max: f32,
     go: &GraphOptions,
+    defs: &Definitions,
 ) -> Result<String, EquationError> {
     let mut y_min: f32 = go.y_min;
     let mut y_max: f32 = go.y_max;
@@ -54,7 +55,8 @@ pub(crate) fn graph(
     let mut segment_start = 0;
 
     for eq in eqs {
-        let rm_points = plot(eq, x_min, x_max, x_step).map_err(|e| e.offset(segment_start))?;
+        let rm_points =
+            plot_with(eq, x_min, x_max, x_step, defs).map_err(|e| e.offset(segment_start))?;
         segment_start += eq.chars().count() + 1; // +1 for the '|' separator
         let points: Vec<Point> = rm_points
             .into_iter()
