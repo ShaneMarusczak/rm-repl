@@ -4,6 +4,7 @@ mod rmr_tests {
 
     use crate::modules::{
         common::{GraphOptions, Point},
+        error_render,
         evaluate::{evaluate, simple_evaluate},
         graphing::graph,
         logger::Logger,
@@ -103,9 +104,52 @@ mod rmr_tests {
 
         //Then
         assert!(test_logger.val.is_empty());
-        assert_eq!(test_logger.error_val, "Invalid input at character 8");
+        assert_eq!(
+            test_logger.error_val,
+            format!(
+                "{}{}^{}\nInvalid input",
+                " ".repeat(10), // ">> " prompt (3) + span start (7)
+                error_render::CARET_START,
+                error_render::CARET_END
+            )
+        );
         assert!(!repl.previous_answer_valid);
         assert_eq!(repl.previous_answer, 0.0);
+    }
+
+    #[test]
+    fn evaluate_error_after_ans_substitution_reprints_evaluated_text() {
+        //Given: a valid previous answer so `ans` gets substituted
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+        evaluate("3 + 4", &mut repl, &mut test_logger);
+
+        //When: the error span refers to the substituted text, which no
+        //longer matches the echoed line
+        evaluate("ans + foo(3)", &mut repl, &mut test_logger);
+
+        //Then: the evaluated text is reprinted and the caret points into it
+        assert_eq!(
+            test_logger.error_val,
+            format!(
+                "7 + foo(3)\n{}{}^^^{}\nInvalid function name foo",
+                " ".repeat(4),
+                error_render::CARET_START,
+                error_render::CARET_END
+            )
+        );
+    }
+
+    #[test]
+    fn graph_error_offsets_span_across_pipe_segments() {
+        //Given a multi-equation graph where the second segment is invalid
+        let go = get_graph_options();
+
+        //When
+        let result = graph("y=x|y=q", -1.0, 1.0, &go);
+
+        //Then the span maps onto the full entered text: `q` is at char 6
+        let span = result.err().and_then(|e| e.span).map(|s| (s.start, s.end));
+        assert_eq!(span, Some((6, 7)));
     }
 
     #[test]
@@ -133,7 +177,15 @@ mod rmr_tests {
 
         //Then
         assert!(test_logger.val.is_empty());
-        assert_eq!(test_logger.error_val, "Invalid input at character 8");
+        assert_eq!(
+            test_logger.error_val,
+            format!(
+                "(3+2+1)_2\n{}{}^{}\nInvalid input",
+                " ".repeat(7), // span start
+                error_render::CARET_START,
+                error_render::CARET_END
+            )
+        );
     }
 
     #[test]
@@ -255,7 +307,14 @@ mod rmr_tests {
 
         //Then
         assert!(test_logger.val.is_empty());
-        assert_eq!(test_logger.error_val, "Invalid function");
+        assert_eq!(
+            test_logger.error_val,
+            format!(
+                "3-sqrt(4\n  {}^^^^^{}\nInvalid function",
+                error_render::CARET_START,
+                error_render::CARET_END
+            )
+        );
     }
 
     #[test]
@@ -354,7 +413,14 @@ mod rmr_tests {
 
         //Then
         assert!(&test_logger.val.is_empty());
-        assert_eq!("Invalid input at character 2", test_logger.error_val);
+        assert_eq!(
+            format!(
+                "y=q\n  {}^{}\nInvalid input",
+                error_render::CARET_START,
+                error_render::CARET_END
+            ),
+            test_logger.error_val
+        );
     }
 
     #[test]
@@ -518,7 +584,14 @@ mod rmr_tests {
 
         //Then
         assert!(&test_logger.val.is_empty());
-        assert_eq!("Invalid input at character 2", test_logger.error_val);
+        assert_eq!(
+            format!(
+                "y=q\n  {}^{}\nInvalid input",
+                error_render::CARET_START,
+                error_render::CARET_END
+            ),
+            test_logger.error_val
+        );
     }
 
     #[test]

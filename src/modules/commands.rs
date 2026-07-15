@@ -1,11 +1,13 @@
 use rusty_maths::{
     equation_analyzer::calculator::plot,
+    equation_analyzer::catalog::{self, Category, Symbol, SymbolKind},
     linear_algebra::{vector_mean, vector_sum},
 };
 
 use crate::modules::{
     common::*,
     cube::cube,
+    error_render,
     graphing::graph,
     inputs::{get_g_inputs, get_matrix_input, get_numerical_input},
     logger::Logger,
@@ -25,6 +27,13 @@ use super::{
 pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
     if let Some(n) = line.strip_prefix("p ").or_else(|| line.strip_prefix("precision ")) {
         set_precision(n, repl, l);
+        return;
+    }
+
+    // `:fns <name>` — describe a single symbol. Bare `:fns` falls through
+    // to the match below and prints the whole catalog.
+    if let Some(name) = line.strip_prefix("fns ") {
+        fns_one(name.trim(), l);
         return;
     }
 
@@ -51,6 +60,7 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
         "c" | "cube" | "3d" => c(l, &go),
         "qbc" => qbc(l, &go),
         "cbc" => cbc(l, &go),
+        "fns" | "functions" => fns_all(l),
         "h" | "help" => h(l),
         _ => {
             l.eprint(&format!("Invalid command '{line}'. Type ':h' for help."));
@@ -70,7 +80,109 @@ fn h(l: &mut impl Logger) {
     l.print(":qbc -> quadratic bezier curve");
     l.print(":cbc -> cubic bezier curve");
     l.print(":p  | :precision <n> -> set decimal precision (e.g. :p 4)");
+    l.print(":fns [name] -> list every math function/operator/constant; with a name, show just that one");
     l.print(":q  | :quit -> exits the repl session");
+}
+
+fn kind_label(k: &SymbolKind) -> &'static str {
+    match k {
+        SymbolKind::Constant(_) => "constant",
+        SymbolKind::Unary(_) | SymbolKind::UnaryChecked(_) => "function",
+        SymbolKind::Variadic { .. } => "function",
+        SymbolKind::LogBase => "function",
+        SymbolKind::Operator { .. } => "operator",
+        SymbolKind::Variable => "variable",
+    }
+}
+
+fn category_label(c: Category) -> &'static str {
+    match c {
+        Category::Constant => "Constants",
+        Category::Arithmetic => "Arithmetic",
+        Category::Trig => "Trigonometric",
+        Category::InverseTrig => "Inverse trig",
+        Category::Hyperbolic => "Hyperbolic",
+        Category::Logarithmic => "Logarithmic",
+        Category::Statistical => "Statistical",
+        Category::AngleConversion => "Angle conversion",
+        Category::Piping => "Piping",
+        Category::Variable => "Variables",
+    }
+}
+
+/// Order in which categories are printed. Matches the source-level ordering
+/// in catalog.rs so the whole listing reads top-to-bottom naturally.
+const CATEGORY_ORDER: &[Category] = &[
+    Category::Constant,
+    Category::Trig,
+    Category::InverseTrig,
+    Category::Hyperbolic,
+    Category::AngleConversion,
+    Category::Arithmetic,
+    Category::Logarithmic,
+    Category::Statistical,
+    Category::Piping,
+    Category::Variable,
+];
+
+fn label_for(sym: &Symbol) -> String {
+    if sym.aliases.is_empty() {
+        sym.name.to_string()
+    } else {
+        format!("{} ({})", sym.name, sym.aliases.join(", "))
+    }
+}
+
+fn fns_all(l: &mut impl Logger) {
+    // Compute the longest label so summaries line up in a column.
+    let label_width = catalog::all()
+        .iter()
+        .map(|s| label_for(s).chars().count())
+        .max()
+        .unwrap_or(4)
+        .max(4);
+
+    l.print("");
+    for cat in CATEGORY_ORDER {
+        let mut printed_header = false;
+        for sym in catalog::by_category(*cat) {
+            if !printed_header {
+                l.print(&format!("── {} ──", category_label(*cat)));
+                printed_header = true;
+            }
+            let label = label_for(sym);
+            let pad = label_width - label.chars().count();
+            l.print(&format!(
+                "  {label}{}  {}",
+                " ".repeat(pad),
+                sym.summary
+            ));
+        }
+        if printed_header {
+            l.print("");
+        }
+    }
+    l.print("Use ':fns <name>' for details on any single symbol (e.g. ':fns atan2').");
+}
+
+fn fns_one(name: &str, l: &mut impl Logger) {
+    if name.is_empty() {
+        l.eprint("Usage: :fns <name>   (or bare :fns to list everything)");
+        return;
+    }
+    match catalog::find(name) {
+        Some(sym) => {
+            l.print("");
+            l.print(&format!("  {}", label_for(sym)));
+            l.print(&format!("  kind      {}", kind_label(&sym.kind)));
+            l.print(&format!("  category  {}", category_label(sym.category)));
+            l.print(&format!("  summary   {}", sym.summary));
+            l.print(&format!("  example   {}", sym.example));
+        }
+        None => l.eprint(&format!(
+            "No symbol '{name}' — try ':fns' for the full list."
+        )),
+    }
 }
 
 fn set_precision(n: &str, repl: &mut Repl, l: &mut impl Logger) {
@@ -144,14 +256,17 @@ fn t(l: &mut impl Logger) {
 
     let points = plot(&eq, x_min, x_max, step_size);
 
-    if let Ok(rm_points) = points {
-        let points: Vec<_> = rm_points
-            .into_iter()
-            .map(|p| Point::new(p.x, p.y))
-            .collect();
-        l.print(&make_table_string(points));
-    } else if let Err(p) = points {
-        l.eprint(&p);
+    match points {
+        Ok(rm_points) => {
+            let points: Vec<_> = rm_points
+                .into_iter()
+                .map(|p| Point::new(p.x, p.y))
+                .collect();
+            l.print(&make_table_string(points));
+        }
+        // The equation prompt has scrolled past (x min/max and step size
+        // prompts printed since), so reprint it and point at the error.
+        Err(e) => l.eprint(&error_render::format_error_with_source(&eq, &e)),
     }
 }
 
@@ -159,10 +274,9 @@ fn g(l: &mut impl Logger, go: &GraphOptions) {
     let (eq, x_min, x_max) = get_g_inputs(l);
     let g = graph(&eq, x_min, x_max, go);
 
-    if let Ok(g) = g {
-        l.print(&g);
-    } else if let Err(g) = g {
-        l.eprint(&g);
+    match g {
+        Ok(g) => l.print(&g),
+        Err(e) => l.eprint(&error_render::format_error_with_source(&eq, &e)),
     }
 }
 
@@ -185,8 +299,8 @@ fn ag(l: &mut impl Logger, go: &GraphOptions) {
                 l.print(&g);
             }
         }
-    } else if let Err(g) = g {
-        l.eprint(&g);
+    } else if let Err(e) = g {
+        l.eprint(&error_render::format_error_with_source(&eq, &e));
     }
 }
 
@@ -252,8 +366,8 @@ fn ig(l: &mut impl Logger, go: &GraphOptions) {
             }
         }
         let _ = disable_raw_mode();
-    } else if let Err(g) = g {
-        l.eprint(&g);
+    } else if let Err(e) = g {
+        l.eprint(&error_render::format_error_with_source(&eq, &e));
     }
 }
 

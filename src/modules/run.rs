@@ -4,7 +4,7 @@ use std::{cmp::Ordering, error::Error};
 use rusty_maths::equation_analyzer::calculator::plot;
 
 use crate::modules::{
-    commands, common::GraphOptions, evaluate, graphing, logger::Logger, repl,
+    commands, common::GraphOptions, error_render, evaluate, graphing, logger::Logger, repl,
     string_maker::make_table_string, variables,
 };
 
@@ -67,10 +67,11 @@ pub(crate) fn as_cli_tool(args: &[String], l: &mut impl Logger) {
                             height: 100,
                         };
                         let g = graphing::graph(&args[2], x_min, x_max, &go);
-                        if let Ok(g) = g {
-                            l.print(&g);
-                        } else if let Err(g) = g {
-                            l.eprint(&g);
+                        match g {
+                            Ok(g) => l.print(&g),
+                            Err(e) => {
+                                l.eprint(&error_render::format_error_with_source(&args[2], &e))
+                            }
                         }
                     } else {
                         l.eprint(&format!(
@@ -92,15 +93,18 @@ pub(crate) fn as_cli_tool(args: &[String], l: &mut impl Logger) {
                 {
                     if x_min < x_max {
                         let points = plot(&args[2], x_min, x_max, step_size);
-                        if let Ok(rm_points) = points {
-                            let points: Vec<_> = rm_points
-                                .into_iter()
-                                .map(|p| crate::modules::common::Point::new(p.x, p.y))
-                                .collect();
-                            let t = make_table_string(points);
-                            l.print(&t);
-                        } else if let Err(p) = points {
-                            l.eprint(&p);
+                        match points {
+                            Ok(rm_points) => {
+                                let points: Vec<_> = rm_points
+                                    .into_iter()
+                                    .map(|p| crate::modules::common::Point::new(p.x, p.y))
+                                    .collect();
+                                let t = make_table_string(points);
+                                l.print(&t);
+                            }
+                            Err(e) => {
+                                l.eprint(&error_render::format_error_with_source(&args[2], &e))
+                            }
                         }
                     } else {
                         l.eprint(&format!(

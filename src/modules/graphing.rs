@@ -7,7 +7,10 @@ use crate::modules::{
 };
 
 use rayon::prelude::*;
-use rusty_maths::{equation_analyzer::calculator::plot, utilities::abs_f32};
+use rusty_maths::{
+    equation_analyzer::{calculator::plot, EquationError},
+    utilities::abs_f32,
+};
 
 // Sampling factor divisor for determining point density in graphs
 const SAMPLING_DIVISOR: f32 = 16.0;
@@ -31,7 +34,7 @@ pub(crate) fn graph(
     x_min: f32,
     x_max: f32,
     go: &GraphOptions,
-) -> Result<String, String> {
+) -> Result<String, EquationError> {
     let mut y_min: f32 = go.y_min;
     let mut y_max: f32 = go.y_max;
 
@@ -46,8 +49,13 @@ pub(crate) fn graph(
 
     let mut points_collection: PointMatrix = Vec::with_capacity(eqs.len());
 
+    // Char offset of the current sub-equation within `eq_str`, so error
+    // spans map back onto the full entered text.
+    let mut segment_start = 0;
+
     for eq in eqs {
-        let rm_points = plot(eq, x_min, x_max, x_step)?;
+        let rm_points = plot(eq, x_min, x_max, x_step).map_err(|e| e.offset(segment_start))?;
+        segment_start += eq.chars().count() + 1; // +1 for the '|' separator
         let points: Vec<Point> = rm_points
             .into_iter()
             .map(|p| Point::new(p.x, p.y))
