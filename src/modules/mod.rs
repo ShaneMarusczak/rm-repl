@@ -11,5 +11,6 @@ pub(crate) mod inputs;
 pub(crate) mod logger;
 pub(crate) mod repl;
 pub(crate) mod run;
+pub(crate) mod scrollable_graph;
 pub(crate) mod string_maker;
 pub(crate) mod tests;

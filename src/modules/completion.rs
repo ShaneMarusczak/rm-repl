@@ -31,6 +31,7 @@ const COMMANDS: &[(&str, bool)] = &[
     (":o", false),
     (":ag", false),
     (":ig", false),
+    (":sg", false),
     (":la", false),
     (":c", false),
     (":cube", false),

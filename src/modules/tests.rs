@@ -505,6 +505,66 @@ mod rmr_tests {
         assert_eq!(got, vec![("growth".to_string(), None)]);
     }
 
+    // ============================================================================
+    // :sg marker math
+    // ============================================================================
+
+    #[test]
+    fn sg_marker_cell_maps_world_to_braille_grid() {
+        use crate::modules::scrollable_graph::test_support::marker_cell_for;
+
+        // 240x120 subpixels = 120x30 chars. Center of a symmetric view
+        // lands in the center cell.
+        let cell = marker_cell_for(0.0, Some(0.0), -1.0, 1.0, -1.0, 1.0, 240, 120);
+        assert_eq!(cell, Some((14, 60)));
+
+        // Left edge, bottom edge.
+        let cell = marker_cell_for(-1.0, Some(-1.0), -1.0, 1.0, -1.0, 1.0, 240, 120);
+        assert_eq!(cell, Some((29, 0)));
+
+        // Top-right corner clamps into the grid.
+        let cell = marker_cell_for(1.0, Some(1.0), -1.0, 1.0, -1.0, 1.0, 240, 120);
+        assert_eq!(cell, Some((0, 119)));
+
+        // Off-view y pins to the frame edge rather than escaping it.
+        let cell = marker_cell_for(0.0, Some(50.0), -1.0, 1.0, -1.0, 1.0, 240, 120);
+        assert_eq!(cell, Some((0, 60)));
+
+        // No value, no marker.
+        assert_eq!(
+            marker_cell_for(0.0, None, -1.0, 1.0, -1.0, 1.0, 240, 120),
+            None
+        );
+    }
+
+    #[test]
+    fn sg_overlay_replaces_one_cell_inside_the_frame() {
+        use crate::modules::scrollable_graph::test_support::overlay;
+
+        let base = "┌──┐1.0\n│⠉⠉│\n│⣀⣀│\n└──┘-1.0\n-1  1";
+
+        // Row 0, col 1 → second braille cell of the first graph line.
+        let marked = overlay(base, Some((0, 1)));
+        assert_eq!(marked, "┌──┐1.0\n│⠉●│\n│⣀⣀│\n└──┘-1.0\n-1  1");
+
+        // Borders and labels are untouched; None is a no-op.
+        assert_eq!(overlay(base, None), base);
+    }
+
+    #[test]
+    fn sg_readout_evaluates_with_bindings() {
+        // eval_at goes through plot_with, so `:sg` sees user functions —
+        // exercised here via the same public path the readout uses.
+        use rusty_maths::equation_analyzer::calculator::plot_with;
+
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+        let_line("let g(x) = 2x^2", &mut repl, &mut test_logger);
+
+        let points = plot_with("y = g(x)", 3.0, 3.0, 1.0, &repl.defs).unwrap();
+        assert_eq!(points.len(), 1);
+        assert_eq!(points[0].y, 18.0);
+    }
+
     #[test]
     fn undef_command_routes_through_run_command() {
         use crate::modules::commands::run_command;

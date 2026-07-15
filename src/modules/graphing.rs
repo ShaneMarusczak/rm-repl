@@ -36,6 +36,19 @@ pub(crate) fn graph(
     go: &GraphOptions,
     defs: &Definitions,
 ) -> Result<String, EquationError> {
+    graph_with_view(eq_str, x_min, x_max, go, defs).map(|(g, _, _)| g)
+}
+
+/// Like [`graph`], but also returns the y-range the auto-fit settled on —
+/// callers that draw *onto* the rendered graph (the `:sg` cursor) need the
+/// same view mapping the plot used.
+pub(crate) fn graph_with_view(
+    eq_str: &str,
+    x_min: f32,
+    x_max: f32,
+    go: &GraphOptions,
+    defs: &Definitions,
+) -> Result<(String, f32, f32), EquationError> {
     let mut y_min: f32 = go.y_min;
     let mut y_max: f32 = go.y_max;
 
@@ -132,10 +145,8 @@ pub(crate) fn graph(
 
     let braille_chars: CharMatrix = get_braille(go, &mut matrix);
 
-    Ok(make_graph_string(
-        braille_chars,
-        x_min,
-        x_max,
+    Ok((
+        make_graph_string(braille_chars, x_min, x_max, master_y_min, master_y_max),
         master_y_min,
         master_y_max,
     ))

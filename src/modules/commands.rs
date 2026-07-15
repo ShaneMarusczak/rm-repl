@@ -66,6 +66,9 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
         "o" | "graph options" => gos(l, repl),
         "ag" | "animated graph" => ag(l, &go, &repl.defs),
         "ig" | "interactive graph" => ig(l, &go, &repl.defs),
+        "sg" | "scrollable graph" => {
+            crate::modules::scrollable_graph::sg(l, &go, &repl.defs, repl.precision)
+        }
         "la" | "linear algebra" => la(l),
         "c" | "cube" | "3d" => c(l, &go),
         "qbc" => qbc(l, &go),
@@ -86,6 +89,7 @@ fn h(l: &mut impl Logger) {
     l.print(":o  | :graph options -> graph options mode");
     l.print(":ag | :animated graph -> animated graph mode");
     l.print(":ig | :interactive graph -> interactive graph mode");
+    l.print(":sg | :scrollable graph -> walk a cursor along the curve (←/→ move, ↑/↓ switch equations, q quits)");
     l.print(":la | :linear algebra -> linear algebra mode");
     l.print(":c  | :cube | :3d -> renders an animated cube to the terminal");
     l.print(":qbc -> quadratic bezier curve");
