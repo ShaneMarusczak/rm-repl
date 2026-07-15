@@ -22,7 +22,7 @@ crossterm = "0.26.1"
 linefeed = { version = "0.6.0", default-features = false }
 num-traits = { version = "0.2.17", default-features = false }
 rayon = { version = "1.10", default-features = false }
-# Local path dep while the symbol-catalog work sits on a feature branch.
-# Switch back to the git ref (with a pinned rev) once rusty-maths merges.
-rusty-maths = { path = "../rusty-maths" }
-# rusty-maths = { git = "https://github.com/ShaneMarusczak/rusty-maths" }
+# Tracks rusty-maths main; `cargo update -p rusty-maths` pulls the latest.
+# For local cross-repo development, temporarily swap to:
+#   rusty-maths = { path = "../rusty-maths" }
+rusty-maths = { git = "https://github.com/ShaneMarusczak/rusty-maths" }
