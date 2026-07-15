@@ -23,7 +23,11 @@ use crate::modules::{
     common::GraphOptions, error_render, graphing, inputs::get_g_inputs, logger::Logger,
 };
 
-const MARKER: char = '●';
+/// The cursor is a reverse-video highlight of the cell it sits on, so the
+/// curve's own dots stay visible inside the marker (an empty cell shows as
+/// a solid block).
+pub(crate) const MARKER_START: &str = "\u{001b}[7m";
+pub(crate) const MARKER_END: &str = "\u{001b}[27m";
 
 /// The fixed view a session scrolls within: the rendered base graph plus
 /// the world-to-cell mapping parameters it was rendered with.
@@ -143,9 +147,15 @@ fn eval_at(eq: &str, x: f32, defs: &Definitions) -> Option<f32> {
 }
 
 /// Maps a world-space cursor position onto a braille character cell —
-/// `(row, col)` within the graph's braille grid, row 0 at the top. The
-/// same normalization the plotter uses, at character resolution; y is
-/// clamped so an off-view cursor pins to the frame edge.
+/// `(row, col)` within the graph's braille grid, row 0 at the top.
+///
+/// This replays the plotter's own pipeline step for step, because any
+/// shortcut drifts by a cell: y snaps to the *nearest* bin (the binary
+/// search's rounding), the bin index flips like `matrix.reverse()`, and
+/// rows group into fours anchored at the top — with `height + 1` matrix
+/// rows the leftover partial row falls at the bottom, so a bottom-anchored
+/// mirror is off by one. Off-view y clamps so the cursor pins to the
+/// frame edge.
 fn marker_cell(cursor_x: f32, y: Option<f32>, view: &View) -> Option<(usize, usize)> {
     let y = y?;
     let char_rows = view.height / 4;
@@ -157,14 +167,20 @@ fn marker_cell(cursor_x: f32, y: Option<f32>, view: &View) -> Option<(usize, usi
     let fx = ((cursor_x - view.x_min) / (view.x_max - view.x_min)).clamp(0.0, 1.0);
     let fy = ((y - view.y_min) / (view.y_max - view.y_min)).clamp(0.0, 1.0);
 
+    // x truncates — the plotter's sample-index-to-column mapping truncates.
     let col = ((fx * view.width as f32) as usize / 2).min(char_cols - 1);
-    let row_from_bottom = ((fy * view.height as f32) as usize / 4).min(char_rows - 1);
-    let row = char_rows - 1 - row_from_bottom;
+
+    // y rounds to the nearest bin edge (0..=height, like the binary
+    // search), flips (like matrix.reverse()), then groups by 4 from the
+    // top (like get_braille).
+    let y_bin = ((fy * view.height as f32).round() as usize).min(view.height);
+    let display_row = view.height - y_bin;
+    let row = (display_row / 4).min(char_rows - 1);
 
     Some((row, col))
 }
 
-/// Replaces one braille cell of the rendered graph with the marker.
+/// Highlights one braille cell of the rendered graph in reverse video.
 /// `cell` is (row, col) in the braille grid; the +1 offsets skip the box
 /// border. `None` leaves the graph untouched.
 fn overlay_marker(base: &str, cell: Option<(usize, usize)>) -> String {
@@ -178,7 +194,13 @@ fn overlay_marker(base: &str, cell: Option<(usize, usize)>) -> String {
         *line = line
             .chars()
             .enumerate()
-            .map(|(i, c)| if i == target { MARKER } else { c })
+            .map(|(i, c)| {
+                if i == target {
+                    format!("{MARKER_START}{c}{MARKER_END}")
+                } else {
+                    c.to_string()
+                }
+            })
             .collect();
     }
     lines.join("\n")
