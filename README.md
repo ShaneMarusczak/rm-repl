@@ -66,6 +66,8 @@ g(x) = a * x^2
 :o  | :graph options      set graph width
 :ag | :animated graph     graph that zooms out over time
 :ig | :interactive graph  graph that pans with the arrow keys (q to quit)
+:sg | :scrollable graph   cursor walks the curve with a live x/y readout
+                          (←/→ move, ↑/↓ switch equations, q to quit)
 :la | :linear algebra     vector ops (vs = sum, vm = mean, b = back)
 :c  | :cube | :3d         animated cube
 :qbc / :cbc               quadratic / cubic bezier curves

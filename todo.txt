@@ -6,7 +6,6 @@ make a logo
 
 command auto complete?
 
-make scrollable graph
 
 
 save graph to a txt file? some other file type? svg?

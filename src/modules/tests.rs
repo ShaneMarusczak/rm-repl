@@ -412,6 +412,173 @@ mod rmr_tests {
         assert!(!looks_like_binding("2 ^ 3"));
     }
 
+    // ============================================================================
+    // Tab completion candidates
+    // ============================================================================
+
+    #[test]
+    fn completion_commands() {
+        use crate::modules::completion::candidates;
+        let none: &[(String, bool)] = &[];
+
+        let got = candidates(":gr", ":gr", none);
+        assert_eq!(got, vec![(":graph".to_string(), None)]);
+
+        // Arg-taking commands complete with a trailing space.
+        let got = candidates(":un", ":un", none);
+        assert_eq!(got, vec![(":undef".to_string(), Some(' '))]);
+
+        let got = candidates(":q", ":q", none);
+        assert_eq!(
+            got,
+            vec![
+                (":q".to_string(), None),
+                (":qbc".to_string(), None),
+                (":quit".to_string(), None)
+            ]
+        );
+    }
+
+    #[test]
+    fn completion_expressions() {
+        use crate::modules::completion::candidates;
+        let bindings = vec![("growth".to_string(), true), ("gain".to_string(), false)];
+
+        // Functions open their call; values complete bare.
+        let got = candidates("g", "2 + ", &bindings);
+        assert_eq!(
+            got,
+            vec![
+                ("gain".to_string(), None),
+                ("growth".to_string(), Some('('))
+            ]
+        );
+
+        // Catalog functions, including aliases, get the paren too.
+        let got = candidates("sq", "", &[]);
+        assert_eq!(got, vec![("sqrt".to_string(), Some('('))]);
+        let got = candidates("arcsi", "", &[]);
+        assert_eq!(
+            got,
+            vec![
+                ("arcsin".to_string(), Some('(')),
+                ("arcsinh".to_string(), Some('(')),
+            ]
+        );
+
+        // log completes into its base syntax; constants and mod are bare.
+        let got = candidates("lo", "", &[]);
+        assert_eq!(got, vec![("log".to_string(), Some('_'))]);
+        let got = candidates("pi", "", &[]);
+        assert_eq!(got, vec![("pi".to_string(), None)]);
+        let got = candidates("mo", "17 ", &[]);
+        assert_eq!(
+            got,
+            vec![("mod".to_string(), None), ("mode".to_string(), Some('('))]
+        );
+
+        // `let` is offered only at the start of a line.
+        let got = candidates("le", "", &[]);
+        assert_eq!(got, vec![("let".to_string(), Some(' '))]);
+        let got = candidates("le", "2 + ", &[]);
+        assert!(got.is_empty());
+    }
+
+    #[test]
+    fn completion_command_arguments() {
+        use crate::modules::completion::candidates;
+        let bindings = vec![("growth".to_string(), true), ("gain".to_string(), false)];
+
+        // :undef completes binding names only, bare.
+        let got = candidates("g", ":undef ", &bindings);
+        assert_eq!(
+            got,
+            vec![("gain".to_string(), None), ("growth".to_string(), None)]
+        );
+        let got = candidates("si", ":undef ", &bindings);
+        assert!(got.is_empty());
+
+        // :fns completes names without call syntax.
+        let got = candidates("sq", ":fns ", &bindings);
+        assert_eq!(got, vec![("sqrt".to_string(), None)]);
+        let got = candidates("gr", ":fns ", &bindings);
+        assert_eq!(got, vec![("growth".to_string(), None)]);
+    }
+
+    // ============================================================================
+    // :sg marker math
+    // ============================================================================
+
+    #[test]
+    fn sg_marker_cell_maps_world_to_braille_grid() {
+        use crate::modules::scrollable_graph::test_support::marker_cell_for;
+
+        // 240x120 subpixels = 120x30 chars. This mirrors the plotter's own
+        // pipeline: y rounds to nearest bin (0..=120), flips, groups by 4
+        // from the top. Center of a symmetric view: bin 60 → display row
+        // 60 → char row 15.
+        let cell = marker_cell_for(0.0, Some(0.0), -1.0, 1.0, -1.0, 1.0, 240, 120);
+        assert_eq!(cell, Some((15, 60)));
+
+        // Left edge, bottom edge: bin 0 → display row 120 → clamps into
+        // the last char row (the partial leftover row isn't rendered).
+        let cell = marker_cell_for(-1.0, Some(-1.0), -1.0, 1.0, -1.0, 1.0, 240, 120);
+        assert_eq!(cell, Some((29, 0)));
+
+        // Top-right corner clamps into the grid.
+        let cell = marker_cell_for(1.0, Some(1.0), -1.0, 1.0, -1.0, 1.0, 240, 120);
+        assert_eq!(cell, Some((0, 119)));
+
+        // Nearest-bin rounding, not truncation: a y just above a bin
+        // midpoint snaps up. y = 0.24 in -1..1 → fy = 0.62 → bin
+        // round(74.4) = 74 → display 46 → char row 11.
+        let cell = marker_cell_for(0.0, Some(0.24), -1.0, 1.0, -1.0, 1.0, 240, 120);
+        assert_eq!(cell, Some((11, 60)));
+
+        // Off-view y pins to the frame edge rather than escaping it.
+        let cell = marker_cell_for(0.0, Some(50.0), -1.0, 1.0, -1.0, 1.0, 240, 120);
+        assert_eq!(cell, Some((0, 60)));
+
+        // No value, no marker.
+        assert_eq!(
+            marker_cell_for(0.0, None, -1.0, 1.0, -1.0, 1.0, 240, 120),
+            None
+        );
+    }
+
+    #[test]
+    fn sg_overlay_highlights_one_cell_inside_the_frame() {
+        use crate::modules::scrollable_graph::test_support::overlay;
+        use crate::modules::scrollable_graph::{MARKER_END, MARKER_START};
+
+        let base = "┌──┐1.0\n│⠉⠉│\n│⣀⣀│\n└──┘-1.0\n-1  1";
+
+        // Row 0, col 1 → second braille cell of the first graph line gets
+        // reverse-videoed; the curve's own dots stay visible inside it.
+        let marked = overlay(base, Some((0, 1)));
+        assert_eq!(
+            marked,
+            format!("┌──┐1.0\n│⠉{MARKER_START}⠉{MARKER_END}│\n│⣀⣀│\n└──┘-1.0\n-1  1")
+        );
+
+        // Borders and labels are untouched; None is a no-op.
+        assert_eq!(overlay(base, None), base);
+    }
+
+    #[test]
+    fn sg_readout_evaluates_with_bindings() {
+        // eval_at goes through plot_with, so `:sg` sees user functions —
+        // exercised here via the same public path the readout uses.
+        use rusty_maths::equation_analyzer::calculator::plot_with;
+
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+        let_line("let g(x) = 2x^2", &mut repl, &mut test_logger);
+
+        let points = plot_with("y = g(x)", 3.0, 3.0, 1.0, &repl.defs).unwrap();
+        assert_eq!(points.len(), 1);
+        assert_eq!(points[0].y, 18.0);
+    }
+
     #[test]
     fn undef_command_routes_through_run_command() {
         use crate::modules::commands::run_command;

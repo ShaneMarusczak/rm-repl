@@ -4,11 +4,12 @@ use std::{cmp::Ordering, error::Error};
 use rusty_maths::equation_analyzer::{calculator::plot, Definitions};
 
 use crate::modules::{
-    bindings, commands, common::GraphOptions, error_render, evaluate, graphing, logger::Logger,
-    repl, string_maker::make_table_string,
+    bindings, commands, common::GraphOptions, completion, error_render, evaluate, graphing,
+    logger::Logger, repl, string_maker::make_table_string,
 };
 
 use linefeed::{DefaultTerminal, Interface, ReadResult};
+use std::sync::Arc;
 
 pub(crate) fn as_repl(l: &mut impl Logger) {
     l.print("\n--rusty maths repl--\n");
@@ -18,7 +19,20 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
     bindings::load(&mut repl, l);
 
     if let Ok(interface) = build_interface() {
-        while let Ok(ReadResult::Input(line)) = interface.read_line() {
+        let completer = Arc::new(completion::RmrCompleter::new());
+        interface.set_completer(completer.clone());
+        interface
+            .lock_reader()
+            .set_word_break_chars(completion::WORD_BREAK_CHARS);
+
+        loop {
+            // Refresh the completion snapshot so new bindings (and `ans`)
+            // are tab-completable immediately.
+            completer.sync(&repl.defs);
+
+            let Ok(ReadResult::Input(line)) = interface.read_line() else {
+                break;
+            };
             let trimmed = line.trim();
             if trimmed.is_empty() {
                 continue;
