@@ -1,10 +1,12 @@
 use rusty_maths::{
-    equation_analyzer::calculator::plot,
+    equation_analyzer::calculator::plot_with,
     equation_analyzer::catalog::{self, Category, Symbol, SymbolKind},
+    equation_analyzer::{Definition, Definitions},
     linear_algebra::{vector_mean, vector_sum},
 };
 
 use crate::modules::{
+    bindings,
     common::*,
     cube::cube,
     error_render,
@@ -25,7 +27,10 @@ use super::{
 };
 
 pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
-    if let Some(n) = line.strip_prefix("p ").or_else(|| line.strip_prefix("precision ")) {
+    if let Some(n) = line
+        .strip_prefix("p ")
+        .or_else(|| line.strip_prefix("precision "))
+    {
         set_precision(n, repl, l);
         return;
     }
@@ -33,7 +38,12 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
     // `:fns <name>` — describe a single symbol. Bare `:fns` falls through
     // to the match below and prints the whole catalog.
     if let Some(name) = line.strip_prefix("fns ") {
-        fns_one(name.trim(), l);
+        fns_one(name.trim(), l, &repl.defs);
+        return;
+    }
+
+    if let Some(name) = line.strip_prefix("undef ") {
+        bindings::undefine(name, repl, l);
         return;
     }
 
@@ -51,16 +61,17 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
         //that inserts "you are a math tutor" or w/e to the start of each prompt
 
         //TODO: a fast forier transform (fft), takes a sound file, shows a report of all wave forms seen, with time ranges when heard
-        "t" | "table" => t(l),
-        "g" | "graph" => g(l, &go),
+        "t" | "table" => t(l, &repl.defs),
+        "g" | "graph" => g(l, &go, &repl.defs),
         "o" | "graph options" => gos(l, repl),
-        "ag" | "animated graph" => ag(l, &go),
-        "ig" | "interactive graph" => ig(l, &go),
+        "ag" | "animated graph" => ag(l, &go, &repl.defs),
+        "ig" | "interactive graph" => ig(l, &go, &repl.defs),
         "la" | "linear algebra" => la(l),
         "c" | "cube" | "3d" => c(l, &go),
         "qbc" => qbc(l, &go),
         "cbc" => cbc(l, &go),
-        "fns" | "functions" => fns_all(l),
+        "fns" | "functions" => fns_all(l, &repl.defs),
+        "undef" => l.eprint("Usage: :undef <name>"),
         "h" | "help" => h(l),
         _ => {
             l.eprint(&format!("Invalid command '{line}'. Type ':h' for help."));
@@ -81,7 +92,13 @@ fn h(l: &mut impl Logger) {
     l.print(":cbc -> cubic bezier curve");
     l.print(":p  | :precision <n> -> set decimal precision (e.g. :p 4)");
     l.print(":fns [name] -> list every math function/operator/constant; with a name, show just that one");
+    l.print(":undef <name> -> remove a let binding");
     l.print(":q  | :quit -> exits the repl session");
+    l.print("");
+    l.print("Bindings (persist across sessions):");
+    l.print("let a = 3        -> bind a value (right side evaluates now)");
+    l.print("let g(x) = 2x^2  -> bind a function (body sees bindings at call time)");
+    l.print("ans              -> the last successful answer, usable in any expression");
 }
 
 fn kind_label(k: &SymbolKind) -> &'static str {
@@ -133,7 +150,7 @@ fn label_for(sym: &Symbol) -> String {
     }
 }
 
-fn fns_all(l: &mut impl Logger) {
+fn fns_all(l: &mut impl Logger, defs: &Definitions) {
     // Compute the longest label so summaries line up in a column.
     let label_width = catalog::all()
         .iter()
@@ -152,22 +169,41 @@ fn fns_all(l: &mut impl Logger) {
             }
             let label = label_for(sym);
             let pad = label_width - label.chars().count();
-            l.print(&format!(
-                "  {label}{}  {}",
-                " ".repeat(pad),
-                sym.summary
-            ));
+            l.print(&format!("  {label}{}  {}", " ".repeat(pad), sym.summary));
         }
         if printed_header {
             l.print("");
         }
     }
+    if !defs.is_empty() {
+        l.print("── Your bindings ──");
+        for def in defs.iter() {
+            match def {
+                Definition::Value { name, value } => l.print(&format!("  {name} = {value}")),
+                Definition::Function { name, body } => l.print(&format!("  {name}(x) = {body}")),
+            }
+        }
+        l.print("");
+    }
     l.print("Use ':fns <name>' for details on any single symbol (e.g. ':fns atan2').");
 }
 
-fn fns_one(name: &str, l: &mut impl Logger) {
+fn fns_one(name: &str, l: &mut impl Logger, defs: &Definitions) {
     if name.is_empty() {
         l.eprint("Usage: :fns <name>   (or bare :fns to list everything)");
+        return;
+    }
+    // Catalog names and binding names can't collide, so order is cosmetic.
+    if let Some(v) = defs.value(name) {
+        l.print("");
+        l.print(&format!("  {name} = {v}"));
+        l.print("  kind      value binding (yours — remove with :undef)");
+        return;
+    }
+    if let Some(body) = defs.function_body(name) {
+        l.print("");
+        l.print(&format!("  {name}(x) = {body}"));
+        l.print("  kind      function binding (yours — remove with :undef)");
         return;
     }
     match catalog::find(name) {
@@ -250,11 +286,11 @@ fn gos(l: &mut impl Logger, repl: &mut Repl) {
     repl.update_dimensions(get_numerical_input("width: ", l));
 }
 
-fn t(l: &mut impl Logger) {
+fn t(l: &mut impl Logger, defs: &Definitions) {
     let (eq, x_min, x_max) = get_g_inputs(l);
     let step_size = get_numerical_input("step size: ", l);
 
-    let points = plot(&eq, x_min, x_max, step_size);
+    let points = plot_with(&eq, x_min, x_max, step_size, defs);
 
     match points {
         Ok(rm_points) => {
@@ -266,25 +302,25 @@ fn t(l: &mut impl Logger) {
         }
         // The equation prompt has scrolled past (x min/max and step size
         // prompts printed since), so reprint it and point at the error.
-        Err(e) => l.eprint(&error_render::format_error_with_source(&eq, &e)),
+        Err(e) => l.eprint(&error_render::render_error_with_source(&eq, &e, defs)),
     }
 }
 
-fn g(l: &mut impl Logger, go: &GraphOptions) {
+fn g(l: &mut impl Logger, go: &GraphOptions, defs: &Definitions) {
     let (eq, x_min, x_max) = get_g_inputs(l);
-    let g = graph(&eq, x_min, x_max, go);
+    let g = graph(&eq, x_min, x_max, go, defs);
 
     match g {
         Ok(g) => l.print(&g),
-        Err(e) => l.eprint(&error_render::format_error_with_source(&eq, &e)),
+        Err(e) => l.eprint(&error_render::render_error_with_source(&eq, &e, defs)),
     }
 }
 
-fn ag(l: &mut impl Logger, go: &GraphOptions) {
+fn ag(l: &mut impl Logger, go: &GraphOptions, defs: &Definitions) {
     let mut stdout = std::io::stdout();
 
     let (eq, x_min, x_max) = get_g_inputs(l);
-    let g = graph(&eq, x_min, x_max, go);
+    let g = graph(&eq, x_min, x_max, go, defs);
 
     if let Ok(g) = g {
         l.print(&g);
@@ -295,20 +331,20 @@ fn ag(l: &mut impl Logger, go: &GraphOptions) {
 
             let _ = stdout.execute(cursor::MoveUp(new_lines as u16));
 
-            if let Ok(g) = graph(&eq, x_min - n as f32, x_max + n as f32, go) {
+            if let Ok(g) = graph(&eq, x_min - n as f32, x_max + n as f32, go, defs) {
                 l.print(&g);
             }
         }
     } else if let Err(e) = g {
-        l.eprint(&error_render::format_error_with_source(&eq, &e));
+        l.eprint(&error_render::render_error_with_source(&eq, &e, defs));
     }
 }
 
-fn ig(l: &mut impl Logger, go: &GraphOptions) {
+fn ig(l: &mut impl Logger, go: &GraphOptions, defs: &Definitions) {
     let mut stdout = std::io::stdout();
 
     let (eq, mut x_min, mut x_max) = get_g_inputs(l);
-    let g = graph(&eq, x_min, x_max, go);
+    let g = graph(&eq, x_min, x_max, go, defs);
 
     if let Ok(g) = g {
         l.print(&g);
@@ -330,7 +366,7 @@ fn ig(l: &mut impl Logger, go: &GraphOptions) {
                     x_max += 1.0;
                     let _ = stdout.execute(cursor::MoveUp(new_lines as u16));
 
-                    if let Ok(g) = graph(&eq, x_min, x_max, go) {
+                    if let Ok(g) = graph(&eq, x_min, x_max, go, defs) {
                         l.print(&g);
                     }
 
@@ -349,7 +385,7 @@ fn ig(l: &mut impl Logger, go: &GraphOptions) {
 
                     let _ = stdout.execute(cursor::MoveUp(new_lines as u16));
 
-                    if let Ok(g) = graph(&eq, x_min, x_max, go) {
+                    if let Ok(g) = graph(&eq, x_min, x_max, go, defs) {
                         l.print(&g);
                     }
 
@@ -367,7 +403,7 @@ fn ig(l: &mut impl Logger, go: &GraphOptions) {
         }
         let _ = disable_raw_mode();
     } else if let Err(e) = g {
-        l.eprint(&error_render::format_error_with_source(&eq, &e));
+        l.eprint(&error_render::render_error_with_source(&eq, &e, defs));
     }
 }
 
@@ -386,7 +422,9 @@ fn la(l: &mut impl Logger) {
                     l.print(&format!("{sum:#?}"));
                 }
                 "b" | "back" => break,
-                _ => l.eprint("Invalid operation. Valid: 'vs' (vector sum), 'vm' (vector mean), 'b' (back)"),
+                _ => l.eprint(
+                    "Invalid operation. Valid: 'vs' (vector sum), 'vm' (vector mean), 'b' (back)",
+                ),
             }
         }
     }

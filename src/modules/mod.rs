@@ -1,4 +1,5 @@
 pub(crate) mod bezier_curve;
+pub(crate) mod bindings;
 pub(crate) mod commands;
 pub(crate) mod common;
 pub(crate) mod cube;
@@ -11,4 +12,3 @@ pub(crate) mod repl;
 pub(crate) mod run;
 pub(crate) mod string_maker;
 pub(crate) mod tests;
-pub(crate) mod variables;

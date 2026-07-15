@@ -50,7 +50,34 @@ THIS TOOL IS A WORK IN PROGRESS, FEATURES MAY CHANGE AT ANY TIME WITH NO NOTICE.
   :c  | :cube | :3d -> renders an animated cube to the terminal
   :qbc -> quadratic bezier curve
   :cbc -> cubic bezier curve
+  :p  | :precision <n> -> set decimal precision
+  :fns [name] -> list every function/operator/constant (and your bindings)
+  :undef <name> -> remove a let binding
   ```
+
+- `let` bindings name values and functions. They persist across sessions
+  (in `~/.rmr_bindings`) and work anywhere an expression does, including
+  graph and table mode.
+
+  ```
+  >>let a = 3
+  a = 3
+  >>let g(x) = a * x^2
+  g(x) = a * x^2
+  >>g(2) + 1
+  13
+  >>4 |> g
+  48
+  ```
+
+  - `let a = 3` binds a value. The right side evaluates immediately — so
+    `let k = ans` captures the last answer as a number.
+  - `let g(x) = 2x^2` binds a function. The body is saved as written and
+    sees other bindings as they stand when the function is *called*:
+    redefine `a` and `g` changes with it. The parameter is always `x`.
+  - `ans` is itself a binding, updated after every successful evaluation.
+    It can't be redefined, and function bodies can't capture it — bind it
+    to a name first (`let k = ans`).
 - In linear algebra mode the following commands become valid:
   ```
   :vs | :vector sum -> vector sum mode

@@ -1,11 +1,11 @@
 use std::process::Command;
 use std::{cmp::Ordering, error::Error};
 
-use rusty_maths::equation_analyzer::calculator::plot;
+use rusty_maths::equation_analyzer::{calculator::plot, Definitions};
 
 use crate::modules::{
-    commands, common::GraphOptions, error_render, evaluate, graphing, logger::Logger, repl,
-    string_maker::make_table_string, variables,
+    bindings, commands, common::GraphOptions, error_render, evaluate, graphing, logger::Logger,
+    repl, string_maker::make_table_string,
 };
 
 use linefeed::{DefaultTerminal, Interface, ReadResult};
@@ -13,17 +13,20 @@ use linefeed::{DefaultTerminal, Interface, ReadResult};
 pub(crate) fn as_repl(l: &mut impl Logger) {
     l.print("\n--rusty maths repl--\n");
 
-    let mut repl = repl::Repl::new(0.0, false, 140);
+    let mut repl = repl::Repl::new(140);
+    repl.bindings_path = bindings::default_bindings_path();
+    bindings::load(&mut repl, l);
 
     if let Ok(interface) = build_interface() {
         while let Ok(ReadResult::Input(line)) = interface.read_line() {
-            if line.trim().is_empty() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
                 continue;
             }
 
             interface.add_history(line.clone());
 
-            if let Some(stripped) = line.strip_prefix(':') {
+            if let Some(stripped) = trimmed.strip_prefix(':') {
                 match stripped {
                     "q" | "quit" => break,
                     "clear" => {
@@ -32,13 +35,14 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
                     }
                     _ => commands::run_command(stripped, l, &mut repl),
                 }
-            } else if !repl.previous_answer_valid && line.contains("ans") {
-                l.eprint("Invalid use of 'ans': no previous answer available");
-                continue;
-            } else if variables::is_variable(&line) {
-                variables::handle_var(&line, &mut repl, l);
+            } else if bindings::is_let_line(trimmed) {
+                bindings::handle_let(trimmed, &mut repl, l, bindings::LetSource::Interactive);
+            } else if bindings::looks_like_binding(trimmed) {
+                l.eprint(&format!(
+                    "To define a binding, start the line with 'let': let {trimmed}"
+                ));
             } else {
-                evaluate::evaluate(&line, &mut repl, l);
+                evaluate::evaluate(trimmed, &mut repl, l);
             }
         }
     }
@@ -66,7 +70,8 @@ pub(crate) fn as_cli_tool(args: &[String], l: &mut impl Logger) {
                             width: 200,
                             height: 100,
                         };
-                        let g = graphing::graph(&args[2], x_min, x_max, &go);
+                        let g =
+                            graphing::graph(&args[2], x_min, x_max, &go, &Definitions::default());
                         match g {
                             Ok(g) => l.print(&g),
                             Err(e) => {
