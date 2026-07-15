@@ -3,7 +3,7 @@
 A terminal calculator and grapher (`rmr`) built on
 [rusty-maths](https://github.com/ShaneMarusczak/rusty-maths).
 
-<img src="./images/Screenshot%202023-12-05%20at%204.57.16 PM.png" width="768"/>
+<img src="./images/screenshot.png" width="768"/>
 
 ## Install
 
