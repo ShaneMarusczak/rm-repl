@@ -412,6 +412,99 @@ mod rmr_tests {
         assert!(!looks_like_binding("2 ^ 3"));
     }
 
+    // ============================================================================
+    // Tab completion candidates
+    // ============================================================================
+
+    #[test]
+    fn completion_commands() {
+        use crate::modules::completion::candidates;
+        let none: &[(String, bool)] = &[];
+
+        let got = candidates(":gr", ":gr", none);
+        assert_eq!(got, vec![(":graph".to_string(), None)]);
+
+        // Arg-taking commands complete with a trailing space.
+        let got = candidates(":un", ":un", none);
+        assert_eq!(got, vec![(":undef".to_string(), Some(' '))]);
+
+        let got = candidates(":q", ":q", none);
+        assert_eq!(
+            got,
+            vec![
+                (":q".to_string(), None),
+                (":qbc".to_string(), None),
+                (":quit".to_string(), None)
+            ]
+        );
+    }
+
+    #[test]
+    fn completion_expressions() {
+        use crate::modules::completion::candidates;
+        let bindings = vec![("growth".to_string(), true), ("gain".to_string(), false)];
+
+        // Functions open their call; values complete bare.
+        let got = candidates("g", "2 + ", &bindings);
+        assert_eq!(
+            got,
+            vec![
+                ("gain".to_string(), None),
+                ("growth".to_string(), Some('('))
+            ]
+        );
+
+        // Catalog functions, including aliases, get the paren too.
+        let got = candidates("sq", "", &[]);
+        assert_eq!(got, vec![("sqrt".to_string(), Some('('))]);
+        let got = candidates("arcsi", "", &[]);
+        assert_eq!(
+            got,
+            vec![
+                ("arcsin".to_string(), Some('(')),
+                ("arcsinh".to_string(), Some('(')),
+            ]
+        );
+
+        // log completes into its base syntax; constants and mod are bare.
+        let got = candidates("lo", "", &[]);
+        assert_eq!(got, vec![("log".to_string(), Some('_'))]);
+        let got = candidates("pi", "", &[]);
+        assert_eq!(got, vec![("pi".to_string(), None)]);
+        let got = candidates("mo", "17 ", &[]);
+        assert_eq!(
+            got,
+            vec![("mod".to_string(), None), ("mode".to_string(), Some('('))]
+        );
+
+        // `let` is offered only at the start of a line.
+        let got = candidates("le", "", &[]);
+        assert_eq!(got, vec![("let".to_string(), Some(' '))]);
+        let got = candidates("le", "2 + ", &[]);
+        assert!(got.is_empty());
+    }
+
+    #[test]
+    fn completion_command_arguments() {
+        use crate::modules::completion::candidates;
+        let bindings = vec![("growth".to_string(), true), ("gain".to_string(), false)];
+
+        // :undef completes binding names only, bare.
+        let got = candidates("g", ":undef ", &bindings);
+        assert_eq!(
+            got,
+            vec![("gain".to_string(), None), ("growth".to_string(), None)]
+        );
+        let got = candidates("si", ":undef ", &bindings);
+        assert!(got.is_empty());
+
+        // :fns completes names without call syntax.
+        let got = candidates("sq", ":fns ", &bindings);
+        assert_eq!(got, vec![("sqrt".to_string(), None)]);
+        let got = candidates("gr", ":fns ", &bindings);
+        assert_eq!(got, vec![("growth".to_string(), None)]);
+    }
+
     #[test]
     fn undef_command_routes_through_run_command() {
         use crate::modules::commands::run_command;

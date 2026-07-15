@@ -2,6 +2,7 @@ pub(crate) mod bezier_curve;
 pub(crate) mod bindings;
 pub(crate) mod commands;
 pub(crate) mod common;
+pub(crate) mod completion;
 pub(crate) mod cube;
 pub(crate) mod error_render;
 pub(crate) mod evaluate;
