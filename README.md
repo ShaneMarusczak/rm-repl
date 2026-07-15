@@ -1,117 +1,100 @@
 # rm-repl [![Rust](https://github.com/ShaneMarusczak/rm-repl/actions/workflows/rust.yml/badge.svg?branch=main&event=push)](https://github.com/ShaneMarusczak/rm-repl/actions/workflows/rust.yml)
 
-A repl (read–eval–print loop) for rusty maths
+A terminal calculator and grapher (`rmr`) built on
+[rusty-maths](https://github.com/ShaneMarusczak/rusty-maths).
 
-THIS TOOL IS A WORK IN PROGRESS, FEATURES MAY CHANGE AT ANY TIME WITH NO NOTICE.
+<img src="./images/Screenshot%202023-12-05%20at%204.57.16 PM.png" width="768"/>
 
-<img src="./images/Screenshot%202023-12-05%20at%204.57.16 PM.png" width="768"/>
+## Install
 
-## Description of features
+```
+cargo install --path .
+```
 
-- Evaluation of mathematical expressions passed in at the command line or in a
-  repl session.
-- Equation graphing.
-- Builds tables of data points for an equation.
-- Vector manipulation.
+Run `rmr` with no arguments for a repl session, or pass an expression to
+evaluate one-shot (see [CLI](#cli)).
 
-## Usage instructions
+## The repl
 
-- Clone this repository and install as a binary to your path with
-  `cargo install --path .` or run with `cargo run`.
+Expressions evaluate on enter. `ans` always holds the last successful
+answer. Errors point at the offending input:
 
-- Calling the program directly with no arguments will place you in a repl
-  session.
+```
+>>21 + 21
+42
+>>ans / 6
+7
+>>2 + sinq(3)
+      ^^^^
+Invalid function name sinq — did you mean 'sin'?
+```
 
-  ```
-  rmr
-  ```
+Run `:fns` to list every available function, operator, and constant, or
+`:fns <name>` for details on one.
 
-- In a repl session expressions are evaluated upon pressing enter.
-  ```
-  >>21+21
-  42
-  >>
-  ```
-- In a repl session you can pass commands that begin with a `:` to change modes.
-  ```
-  >>:g
-  equation:
-  ```
-- Available commands are:
+### Bindings
 
-  ```
-  :g  | :graph -> graphing mode
-  :t  | :table -> table mode
-  :o | :graph options -> graph options mode
-  :ag | :animated graph -> animated graph mode
-  :ig | :interactive graph -> interactive graph mode
-  :la | :linear algebra -> linear algebra mode
-  :q  | :quit -> exits the repl session
-  :c  | :cube | :3d -> renders an animated cube to the terminal
-  :qbc -> quadratic bezier curve
-  :cbc -> cubic bezier curve
-  :p  | :precision <n> -> set decimal precision
-  :fns [name] -> list every function/operator/constant (and your bindings)
-  :undef <name> -> remove a let binding
-  ```
+`let` names a value or a single-parameter function. Bindings persist across
+sessions (in `~/.rmr_bindings`) and work anywhere an expression does,
+including graph and table mode.
 
-- `let` bindings name values and functions. They persist across sessions
-  (in `~/.rmr_bindings`) and work anywhere an expression does, including
-  graph and table mode.
+```
+>>let a = 3
+a = 3
+>>let g(x) = a * x^2
+g(x) = a * x^2
+>>g(2) + 1
+13
+>>4 |> g
+48
+```
 
-  ```
-  >>let a = 3
-  a = 3
-  >>let g(x) = a * x^2
-  g(x) = a * x^2
-  >>g(2) + 1
-  13
-  >>4 |> g
-  48
-  ```
+- Value bindings evaluate immediately — `let k = ans` captures the last
+  answer as a number.
+- Function bodies are saved as written and read other bindings when
+  *called*: redefine `a` above and `g` changes with it. The parameter is
+  always `x`.
+- `ans` is itself a binding, updated after every successful evaluation. It
+  can't be redefined, and function bodies can't capture it — bind it to a
+  name first.
 
-  - `let a = 3` binds a value. The right side evaluates immediately — so
-    `let k = ans` captures the last answer as a number.
-  - `let g(x) = 2x^2` binds a function. The body is saved as written and
-    sees other bindings as they stand when the function is *called*:
-    redefine `a` and `g` changes with it. The parameter is always `x`.
-  - `ans` is itself a binding, updated after every successful evaluation.
-    It can't be redefined, and function bodies can't capture it — bind it
-    to a name first (`let k = ans`).
-- In linear algebra mode the following commands become valid:
-  ```
-  :vs | :vector sum -> vector sum mode
-  :vm | :vector mean -> vector mean mode
-  ```
+### Commands
 
-- Graph mode accepts multiple equations separated by a `|`. Both equations will
-  be plotted in the same graph space adjusting for equations with different
-  ranges.
-  ```
-  >>:g
-  equation:y=sin(x) | y=cos(x)
-  ```
+```
+:g  | :graph              graph one or more equations
+:t  | :table              table of points for an equation
+:o  | :graph options      set graph width
+:ag | :animated graph     graph that zooms out over time
+:ig | :interactive graph  graph that pans with the arrow keys (q to quit)
+:la | :linear algebra     vector ops (vs = sum, vm = mean, b = back)
+:c  | :cube | :3d         animated cube
+:qbc / :cbc               quadratic / cubic bezier curves
+:p  | :precision <n>      set decimal display precision
+:fns [name]               list functions/operators/constants and your bindings
+:undef <name>             remove a let binding
+:clear                    clear the screen
+:h  | :help               help
+:q  | :quit               exit
+```
 
-- Alternatively you can pass flags and arguments to the program directly.
-- Passing no flags is interpreted as evaluation mode.
+Graph mode accepts multiple equations separated by `|`, plotted in a shared
+graph space:
 
-  ```
-  rmr 84/2
-  42
-  ```
-- NOTE: '(' and ')' are not allowed to be used directly at the command line. Any
-  expression using these must be wrapped in quotes.
+```
+>>:g
+equation:y=sin(x) | y=cos(x)
+```
 
-  ```
-  rmr "sqrt(1764)"
-  42
-  ```
+## CLI
 
-- Available flags are:
-  ```
-  -g | --graph -> graphing mode
-  rmr -g y=x -5 5
+Passing arguments evaluates without entering the repl (saved bindings are
+not loaded in one-shot mode):
 
-  -t | --table -> table mode
-  rmr -t y=x -5 5 1
-  ```
+```
+rmr 84/2                  evaluate an expression
+rmr -g y=x -5 5           graph: equation, x-min, x-max
+rmr -t y=x -5 5 1         table: equation, x-min, x-max, step size
+```
+
+Note: shells interpret `(` and `)` — quote any expression that uses them:
+`rmr "sqrt(1764)"`.
