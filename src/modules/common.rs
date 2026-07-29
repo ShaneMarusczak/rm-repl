@@ -21,15 +21,11 @@ pub(crate) type PointMatrix = Vec<Vec<Point>>;
 #[derive(Debug)]
 pub(crate) struct Cell {
     pub(crate) value: bool,
-    pub(crate) visited: bool,
 }
 
 impl Cell {
     pub(crate) const fn new() -> Self {
-        Self {
-            value: false,
-            visited: false,
-        }
+        Self { value: false }
     }
 }
 
@@ -56,34 +52,34 @@ pub(crate) fn make_cell_matrix(go: &GraphOptions) -> CellMatrix {
 ///https://en.wikipedia.org/wiki/Braille_Patterns
 ///
 /// ⣿
-pub(crate) fn get_braille(go: &GraphOptions, matrix: &mut CellMatrix) -> CharMatrix {
+pub(crate) fn get_braille(go: &GraphOptions, matrix: &CellMatrix) -> CharMatrix {
     let row_char_count = go.height / 4;
     let col_char_count = go.width / 2;
 
     let mut chars: CharMatrix = vec![Vec::with_capacity(col_char_count); row_char_count];
 
-    for row in 0..matrix.len() {
-        for col in 0..matrix[row].len() {
-            let cell: &Cell = &matrix[row][col];
-
-            //this cell has already been used in a previous char
-            if cell.visited {
-                continue;
-            }
+    // Each braille glyph packs a 2-wide × 4-tall block of cells, so glyph
+    // origins land exactly on cells where row % 4 == 0 and col % 2 == 0. Step
+    // straight to those corners instead of walking every cell and skipping the
+    // 7 of 8 that a previous glyph already consumed.
+    for row in (0..matrix.len()).step_by(4) {
+        if row / 4 >= chars.len() {
+            break; // ragged final block with no glyph row to hold it
+        }
+        for col in (0..matrix[row].len()).step_by(2) {
             let mut braille_char_bits = 0u8;
             let mut shift = 0u8;
 
             //1-6 braille dots
             for dx in 0..=1 {
                 for dy in 0..=2 {
-                    if let Some(row_data) = matrix.get_mut(row + dy) {
-                        if let Some(cell_data) = row_data.get_mut(col + dx) {
+                    if let Some(row_data) = matrix.get(row + dy) {
+                        if let Some(cell) = row_data.get(col + dx) {
                             //00000000 |= 00000001 (shifted true by 0) -> 00000001
                             //00000001 |= 00000010 (shifted true by 1) -> 00000011
                             //00000011 |= 00000000 (shifted false by 2) -> 00000011
                             //etc..
-                            braille_char_bits |= (cell_data.value as u8) << shift;
-                            cell_data.visited = true;
+                            braille_char_bits |= (cell.value as u8) << shift;
                             shift += 1;
                         }
                     }
@@ -93,20 +89,17 @@ pub(crate) fn get_braille(go: &GraphOptions, matrix: &mut CellMatrix) -> CharMat
             //7-8 braille dots
             for dx in 0..=1 {
                 let dy = 3;
-                if let Some(row_data) = matrix.get_mut(row + dy) {
-                    if let Some(cell_data) = row_data.get_mut(col + dx) {
-                        braille_char_bits |= (cell_data.value as u8) << shift;
-                        cell_data.visited = true;
+                if let Some(row_data) = matrix.get(row + dy) {
+                    if let Some(cell) = row_data.get(col + dx) {
+                        braille_char_bits |= (cell.value as u8) << shift;
                         shift += 1;
                     }
                 }
             }
 
-            if (row / 4) < chars.len() {
-                let braille_char = '⠀' as u32 + braille_char_bits as u32;
-                if let Some(v) = std::char::from_u32(braille_char) {
-                    chars[row / 4].push(v);
-                }
+            let braille_char = '⠀' as u32 + braille_char_bits as u32;
+            if let Some(v) = std::char::from_u32(braille_char) {
+                chars[row / 4].push(v);
             }
         }
     }

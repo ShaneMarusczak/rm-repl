@@ -6,7 +6,6 @@ use crate::modules::{
     string_maker::make_graph_string,
 };
 
-use rayon::prelude::*;
 use rusty_maths::{
     equation_analyzer::{calculator::plot_with, Definitions, EquationError},
     utilities::abs_f32,
@@ -130,7 +129,7 @@ pub(crate) fn graph(
 
     check_add_y_axis(x_min, x_max, go.width, &mut matrix);
 
-    let braille_chars: CharMatrix = get_braille(go, &mut matrix);
+    let braille_chars: CharMatrix = get_braille(go, &matrix);
 
     Ok(make_graph_string(
         braille_chars,
@@ -199,67 +198,34 @@ pub(crate) fn get_normalized_points(
     y_max: f32,
     points: &[Point],
     sampling_factor: f32,
-) -> impl Iterator<Item = NormalizedPoint> {
+) -> impl Iterator<Item = NormalizedPoint> + '_ {
     let y_step = (y_max - y_min) / height as f32;
-
-    let y_values: Vec<f32> = (0..=height)
-        .map(|n| y_step.mul_add(n as f32, y_min))
-        .collect();
 
     let inverse_samp_factor = 1.0 / sampling_factor;
 
-    points
-        .par_iter()
-        .enumerate()
-        .map(|(i, point)| {
-            let x = ((i as f32) * inverse_samp_factor) as usize;
-            let y = binary_search(&y_values, point.y);
+    // Lazy: the caller filters and drains this straight into the matrix, so no
+    // intermediate Vec. The per-point work is a handful of float ops — far too
+    // little to pay for rayon's thread dispatch, so this stays serial.
+    points.iter().enumerate().map(move |(i, point)| {
+        let x = ((i as f32) * inverse_samp_factor) as usize;
 
-            NormalizedPoint {
-                x,
-                y,
-                y_acc: point.y,
-            }
-        })
-        .collect::<Vec<_>>()
-        .into_iter()
-}
-
-///assumes nums is in ascending order
-fn binary_search(nums: &[f32], num: f32) -> usize {
-    if nums.is_empty() {
-        return 0;
-    }
-    if nums[0] >= num {
-        return 0;
-    }
-    if nums[nums.len() - 1] <= num {
-        return nums.len() - 1;
-    }
-
-    let mut start = 0;
-    let mut end = nums.len();
-
-    while start <= end {
-        let mut mid = start + (end - start) / 2;
-
-        // usize math pushes mid to zero when trying to compare index 0 and 1
-        if mid == 0 {
-            mid = 1;
-        }
-
-        let mid_minus_one = mid - 1;
-
-        if num >= nums[mid_minus_one] && num <= nums[mid] {
-            let check = (num - nums[mid_minus_one]).abs() < (num - nums[mid]).abs();
-            return if check { mid_minus_one } else { mid };
-        } else if nums[mid] < num {
-            start = mid + 1;
+        // y_values would be the uniform ladder y_min + n*y_step for n in 0..=height.
+        // Since it's evenly spaced, invert the formula to get the nearest rung directly
+        // instead of building the ladder and searching it.
+        let y = if y_step == 0.0 {
+            0
         } else {
-            end = mid_minus_one;
+            ((point.y - y_min) / y_step)
+                .round()
+                .clamp(0.0, height as f32) as usize
+        };
+
+        NormalizedPoint {
+            x,
+            y,
+            y_acc: point.y,
         }
-    }
-    unreachable!()
+    })
 }
 
 fn check_add_x_axis(y_min: f32, y_max: f32, height: usize, matrix: &mut CellMatrix) {
