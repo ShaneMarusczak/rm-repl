@@ -110,6 +110,13 @@ pub(crate) fn graph(
     check_add_tick_marks(&mut matrix, x_min, x_max, master_y_min, master_y_max, go);
 
     for points in points_collection {
+        // Light the exact footprint. Within a column the curve sweeps a
+        // contiguous band of rows, so lighting only the sampled rows leaves
+        // gaps on steep sections. Record each column's min/max row and fill
+        // the span between them — gentle columns (min == max) are unchanged;
+        // steep columns close up into the full run of cells the curve covers.
+        let mut col_lo = vec![usize::MAX; go.width + 1];
+        let mut col_hi = vec![0usize; go.width + 1];
         for np in get_normalized_points(
             go.height,
             master_y_min,
@@ -119,7 +126,17 @@ pub(crate) fn graph(
         )
         .filter(|np| np.y_acc <= master_y_max && np.y_acc >= master_y_min)
         {
-            matrix[np.y][np.x].value = true;
+            if np.x <= go.width {
+                col_lo[np.x] = col_lo[np.x].min(np.y);
+                col_hi[np.x] = col_hi[np.x].max(np.y);
+            }
+        }
+        for x in 0..=go.width {
+            if col_lo[x] != usize::MAX {
+                for y in col_lo[x]..=col_hi[x] {
+                    matrix[y][x].value = true;
+                }
+            }
         }
     }
 
