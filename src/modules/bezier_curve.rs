@@ -38,7 +38,7 @@ fn render_curve(points: Vec<Point>, go: &GraphOptions, l: &mut impl Logger) {
         }
     }
 
-    let braille_chars: CharMatrix = get_braille(go, &mut matrix);
+    let braille_chars: CharMatrix = get_braille(go, &matrix);
     l.print(&make_curve_string(
         braille_chars,
         0.0,

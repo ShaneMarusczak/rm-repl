@@ -149,7 +149,7 @@ fn make_cube(go: &GraphOptions, p: &[[f32; 3]], edges: &[[usize; 2]]) -> String 
         );
     }
 
-    let braille_chars: CharMatrix = get_braille(go, &mut matrix);
+    let braille_chars: CharMatrix = get_braille(go, &matrix);
 
     let lines = braille_chars.iter().fold(String::new(), |mut acc, s| {
         // Writing to String never fails, safe to ignore
