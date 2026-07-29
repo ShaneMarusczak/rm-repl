@@ -215,7 +215,9 @@ pub(crate) fn get_normalized_points(
         let y = if y_step == 0.0 {
             0
         } else {
-            ((point.y - y_min) / y_step).round().clamp(0.0, height as f32) as usize
+            ((point.y - y_min) / y_step)
+                .round()
+                .clamp(0.0, height as f32) as usize
         };
 
         NormalizedPoint {
