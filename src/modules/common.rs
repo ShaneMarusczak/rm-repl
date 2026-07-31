@@ -59,9 +59,7 @@ pub(crate) fn get_braille(go: &GraphOptions, matrix: &CellMatrix) -> CharMatrix 
     let mut chars: CharMatrix = vec![Vec::with_capacity(col_char_count); row_char_count];
 
     // Each braille glyph packs a 2-wide × 4-tall block of cells, so glyph
-    // origins land exactly on cells where row % 4 == 0 and col % 2 == 0. Step
-    // straight to those corners instead of walking every cell and skipping the
-    // 7 of 8 that a previous glyph already consumed.
+    // origins fall on cells where row % 4 == 0 and col % 2 == 0.
     for row in (0..matrix.len()).step_by(4) {
         if row / 4 >= chars.len() {
             break; // ragged final block with no glyph row to hold it

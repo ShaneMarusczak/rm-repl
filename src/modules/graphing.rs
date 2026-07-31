@@ -110,11 +110,8 @@ pub(crate) fn graph(
     check_add_tick_marks(&mut matrix, x_min, x_max, master_y_min, master_y_max, go);
 
     for points in points_collection {
-        // Light the exact footprint. Within a column the curve sweeps a
-        // contiguous band of rows, so lighting only the sampled rows leaves
-        // gaps on steep sections. Record each column's min/max row and fill
-        // the span between them — gentle columns (min == max) are unchanged;
-        // steep columns close up into the full run of cells the curve covers.
+        // Within a column the curve sweeps a contiguous band of rows, so
+        // record each column's min/max row and fill the span between them.
         let mut col_lo = vec![usize::MAX; go.width + 1];
         let mut col_hi = vec![0usize; go.width + 1];
         for np in get_normalized_points(
@@ -133,8 +130,8 @@ pub(crate) fn graph(
         }
         for x in 0..=go.width {
             if col_lo[x] != usize::MAX {
-                for y in col_lo[x]..=col_hi[x] {
-                    matrix[y][x].value = true;
+                for row in &mut matrix[col_lo[x]..=col_hi[x]] {
+                    row[x].value = true;
                 }
             }
         }
@@ -220,15 +217,11 @@ pub(crate) fn get_normalized_points(
 
     let inverse_samp_factor = 1.0 / sampling_factor;
 
-    // Lazy: the caller filters and drains this straight into the matrix, so no
-    // intermediate Vec. The per-point work is a handful of float ops — far too
-    // little to pay for rayon's thread dispatch, so this stays serial.
+    // Lazy: the caller filters and drains this straight into the matrix.
     points.iter().enumerate().map(move |(i, point)| {
         let x = ((i as f32) * inverse_samp_factor) as usize;
 
-        // y_values would be the uniform ladder y_min + n*y_step for n in 0..=height.
-        // Since it's evenly spaced, invert the formula to get the nearest rung directly
-        // instead of building the ladder and searching it.
+        // Rows are evenly spaced (y_min + n*y_step), so map y to its nearest row directly.
         let y = if y_step == 0.0 {
             0
         } else {
