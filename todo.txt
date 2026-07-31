@@ -6,12 +6,16 @@ make a logo
 
 command auto complete?
 
-make scrollable graph
+make scrollable graph (sg): like interactive graph, but left/right moves a
+point along the curve and up/down switches curves (if multiple)
 
+math tutor (mt): chat session that prefixes each prompt with a
+"you are a math tutor" system prompt
+
+fast fourier transform (fft): takes a sound file, reports wave forms
+seen with time ranges
 
 save graph to a txt file? some other file type? svg?
-
-command autocomplete?
 
 if you type a command without a :,
 try to run the line (maybe a variable)

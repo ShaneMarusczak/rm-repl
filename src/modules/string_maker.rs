@@ -75,7 +75,13 @@ pub(crate) fn make_graph_string(
 
     let bottom_line = format!("{}{}{}{:.2}\n", BOTTOM_LEFT, gap_str, BOTTOM_RIGHT, y_min);
 
-    let x_axis_line = format!("{}{}{}{}", x_min, " ".repeat(gap - 1), x_max, " ".repeat(5));
+    let x_axis_line = format!(
+        "{}{}{}{}",
+        x_min,
+        " ".repeat(gap.saturating_sub(1)),
+        x_max,
+        " ".repeat(5)
+    );
 
     top_line + &middle_lines + &bottom_line + &x_axis_line
 }
@@ -109,7 +115,7 @@ pub(crate) fn make_curve_string(
     let x_axis_line = format!(
         "\n{}{}{}{}\n",
         x_min,
-        " ".repeat(gap - 1),
+        " ".repeat(gap.saturating_sub(1)),
         x_max,
         " ".repeat(5)
     );

@@ -17,33 +17,39 @@ pub(crate) fn as_repl(l: &mut impl Logger) {
     repl.bindings_path = bindings::default_bindings_path();
     bindings::load(&mut repl, l);
 
-    if let Ok(interface) = build_interface() {
-        while let Ok(ReadResult::Input(line)) = interface.read_line() {
-            let trimmed = line.trim();
-            if trimmed.is_empty() {
-                continue;
-            }
+    let interface = match build_interface() {
+        Ok(interface) => interface,
+        Err(e) => {
+            l.eprint(&format!("Could not start an interactive session: {e}"));
+            return;
+        }
+    };
 
-            interface.add_history(line.clone());
+    while let Ok(ReadResult::Input(line)) = interface.read_line() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
 
-            if let Some(stripped) = trimmed.strip_prefix(':') {
-                match stripped {
-                    "q" | "quit" => break,
-                    "clear" => {
-                        // Clear screen - ignore errors as it's not critical
-                        let _ = Command::new("clear").status();
-                    }
-                    _ => commands::run_command(stripped, l, &mut repl),
+        interface.add_history(line.clone());
+
+        if let Some(stripped) = trimmed.strip_prefix(':') {
+            match stripped {
+                "q" | "quit" => break,
+                "clear" => {
+                    // Clear screen - ignore errors as it's not critical
+                    let _ = Command::new("clear").status();
                 }
-            } else if bindings::is_let_line(trimmed) {
-                bindings::handle_let(trimmed, &mut repl, l, bindings::LetSource::Interactive);
-            } else if bindings::looks_like_binding(trimmed) {
-                l.eprint(&format!(
-                    "To define a binding, start the line with 'let': let {trimmed}"
-                ));
-            } else {
-                evaluate::evaluate(trimmed, &mut repl, l);
+                _ => commands::run_command(stripped, l, &mut repl),
             }
+        } else if bindings::is_let_line(trimmed) {
+            bindings::handle_let(trimmed, &mut repl, l, bindings::LetSource::Interactive);
+        } else if bindings::looks_like_binding(trimmed) {
+            l.eprint(&format!(
+                "To define a binding, start the line with 'let': let {trimmed}"
+            ));
+        } else {
+            evaluate::evaluate(trimmed, &mut repl, l);
         }
     }
 }

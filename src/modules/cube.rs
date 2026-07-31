@@ -61,11 +61,7 @@ pub(crate) fn cube(l: &mut impl Logger, go: &GraphOptions) {
     let mut points = vec![p0, p1, p2, p3, p4, p5, p6, p7, origin];
     let frame = make_cube(go, &points, &edges);
 
-    let new_lines = frame
-        .chars()
-        .filter(|c| c.eq_ignore_ascii_case(&'\n'))
-        .count()
-        + 1;
+    let new_lines = frame_line_count(&frame);
 
     l.print(&frame);
 

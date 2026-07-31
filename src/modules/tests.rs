@@ -334,6 +334,53 @@ mod rmr_tests {
     }
 
     #[test]
+    fn let_double_equals_is_rejected() {
+        let (mut repl, mut test_logger) = get_repl_and_logger();
+
+        // The engine evaluates `= 3` as `3`, so without a guard this typo
+        // would silently bind a = 3.
+        assert!(!let_line("let a == 3", &mut repl, &mut test_logger));
+        assert!(test_logger.error_val.contains("single '='"));
+        assert!(!repl.defs.contains("a"));
+    }
+
+    #[test]
+    fn update_dimensions_rejects_unrenderable_widths() {
+        use crate::modules::repl::MIN_GRAPH_WIDTH;
+        let mut repl = get_repl();
+
+        assert!(!repl.update_dimensions(MIN_GRAPH_WIDTH - 1));
+        assert_eq!((repl.width, repl.height), (240, 120)); // unchanged
+
+        assert!(repl.update_dimensions(MIN_GRAPH_WIDTH));
+        assert_eq!((repl.width, repl.height), (8, 4));
+    }
+
+    #[test]
+    fn graph_survives_degenerate_dimensions() {
+        // Belt and braces: even a graph too small for one braille glyph
+        // must not panic (`:o` rejects these, but graph() shouldn't care).
+        let go = GraphOptions {
+            y_max: 7.,
+            y_min: -7.,
+            width: 2,
+            height: 1,
+        };
+        assert!(graph("y=x", -2.0, 2.0, &go, &empty_defs()).is_ok());
+    }
+
+    #[test]
+    fn graph_drops_nan_points_instead_of_plotting_zero() {
+        // asin(x) is undefined for |x| > 1; NaN samples must vanish rather
+        // than be drawn at y = 0 (the old behavior produced vertical bars
+        // at the domain edges).
+        let go = get_graph_options();
+        let g = graph("y=asin(x)", -3.0, 3.0, &go, &empty_defs());
+        assert!(g.is_ok());
+        assert!(is_graph_string(&g.unwrap()));
+    }
+
+    #[test]
     fn let_value_rhs_error_carets_typed_line() {
         let (mut repl, mut test_logger) = get_repl_and_logger();
 

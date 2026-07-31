@@ -13,7 +13,7 @@ use crate::modules::{
     graphing::graph,
     inputs::{get_g_inputs, get_matrix_input, get_numerical_input},
     logger::Logger,
-    repl::Repl,
+    repl::{Repl, MIN_GRAPH_WIDTH},
     string_maker::make_table_string,
 };
 
@@ -54,13 +54,6 @@ pub(crate) fn run_command(line: &str, l: &mut impl Logger, repl: &mut Repl) {
         height: repl.height,
     };
     match line {
-        //TODO: scrollable graph (sg), like iteractive graph but you move a point along the graph instead of moving the graph
-        //left right moves the point, up down switches graphs (if multiple)
-
-        //TODO: add math tutor (mt) option that starts a chat session with chat gpt
-        //that inserts "you are a math tutor" or w/e to the start of each prompt
-
-        //TODO: a fast forier transform (fft), takes a sound file, shows a report of all wave forms seen, with time ranges when heard
         "t" | "table" => t(l, &repl.defs),
         "g" | "graph" => g(l, &go, &repl.defs),
         "o" | "graph options" => gos(l, repl),
@@ -283,7 +276,10 @@ fn c(l: &mut impl Logger, go: &GraphOptions) {
 }
 
 fn gos(l: &mut impl Logger, repl: &mut Repl) {
-    repl.update_dimensions(get_numerical_input("width: ", l));
+    let width = get_numerical_input("width: ", l);
+    if !repl.update_dimensions(width) {
+        l.eprint(&format!("Width must be at least {MIN_GRAPH_WIDTH}"));
+    }
 }
 
 fn t(l: &mut impl Logger, defs: &Definitions) {
@@ -324,7 +320,7 @@ fn ag(l: &mut impl Logger, go: &GraphOptions, defs: &Definitions) {
 
     if let Ok(g) = g {
         l.print(&g);
-        let new_lines = g.chars().filter(|c| c.eq_ignore_ascii_case(&'\n')).count() + 1;
+        let new_lines = frame_line_count(&g);
 
         for n in 0..100 {
             std::thread::sleep(std::time::Duration::from_millis(90));
@@ -349,7 +345,7 @@ fn ig(l: &mut impl Logger, go: &GraphOptions, defs: &Definitions) {
     if let Ok(g) = g {
         l.print(&g);
 
-        let new_lines = g.chars().filter(|c| c.eq_ignore_ascii_case(&'\n')).count() + 1;
+        let new_lines = frame_line_count(&g);
         // Enable raw mode for key capture - ignore errors, continue without interactive mode
         let _ = enable_raw_mode();
 

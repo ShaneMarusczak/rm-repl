@@ -42,6 +42,12 @@ pub(crate) struct GraphOptions {
     pub(crate) width: usize,
 }
 
+/// Terminal lines a rendered frame occupies: newline count plus the final
+/// unterminated line. Animated modes move the cursor up by this much.
+pub(crate) fn frame_line_count(frame: &str) -> usize {
+    frame.chars().filter(|c| *c == '\n').count() + 1
+}
+
 pub(crate) fn make_cell_matrix(go: &GraphOptions) -> CellMatrix {
     (0..go.height + 1)
         .map(|_| (0..go.width + 1).map(|_| Cell::new()).collect())

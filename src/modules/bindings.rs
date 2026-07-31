@@ -175,6 +175,16 @@ fn parse_and_define(line: &str, repl: &mut Repl) -> Result<String, LetError> {
         return Err(LetError::plain(USAGE));
     }
 
+    // Catch `let a == 3`: the engine happens to evaluate `= 3`, which would
+    // silently bind a typo.
+    if rhs_trimmed.starts_with('=') {
+        return Err(LetError::spanned(
+            "Bindings use a single '='",
+            rhs_offset,
+            rhs_offset + 1,
+        ));
+    }
+
     let (name, is_function) = match lhs_trimmed.split_once('(') {
         Some((name, params)) => {
             let name = name.trim_end();

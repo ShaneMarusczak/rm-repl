@@ -1,4 +1,7 @@
-use rusty_maths::{equation_analyzer::calculator::calculate, linear_algebra::Matrix};
+use rusty_maths::{
+    equation_analyzer::{calculator::calculate_with, Definitions},
+    linear_algebra::Matrix,
+};
 use std::error::Error;
 
 use crate::modules::logger::Logger;
@@ -9,13 +12,24 @@ pub(crate) fn get_matrix_input(l: &mut impl Logger) -> Matrix {
     let vec_amount: usize = get_numerical_input("vector count: ", l);
     let mut m: Matrix = Vec::with_capacity(vec_amount);
     if let Ok(entry_fn) = read_user_input("entry fn: ") {
+        // Run the entry fn through the engine as a real function of x (the
+        // entry's index) — textual substitution would corrupt names that
+        // contain an 'x', like max or exp.
+        let mut defs = Definitions::new();
+        if defs.define_function("f", &entry_fn).is_err() || defs.validate_function("f").is_err() {
+            l.eprint(&format!("'{entry_fn}' is not a valid entry fn"));
+            return m;
+        }
         for i in 0..vec_amount {
-            let vec_size: usize = get_numerical_input(&format!("vector {} size: ", i), l);
+            let vec_size: usize = get_numerical_input(&format!("vector {i} size: "), l);
             m.push(Vec::with_capacity(vec_size));
             for x in 0..vec_size {
-                let e_f = entry_fn.replace('x', &x.to_string());
-                if let Ok(v) = calculate(&e_f) {
-                    m[i].push(v as f64);
+                match calculate_with(&format!("f({x})"), &defs) {
+                    Ok(v) => m[i].push(f64::from(v)),
+                    Err(e) => {
+                        l.eprint(&format!("Entry fn failed at x = {x}: {}", e.message));
+                        return m;
+                    }
                 }
             }
         }

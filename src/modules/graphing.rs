@@ -84,22 +84,9 @@ pub(crate) fn graph(
             master_y_max = y_max;
         }
 
-        //Keep NaN from sneaking in
-        if points.iter().any(|p| p.x.is_nan() || p.y.is_nan()) {
-            let p = points
-                .iter()
-                .map(|p| {
-                    if p.x.is_nan() || p.y.is_nan() {
-                        Point::new(0.0, 0.0)
-                    } else {
-                        Point::new(p.x, p.y)
-                    }
-                })
-                .collect();
-            points_collection.push(p);
-        } else {
-            points_collection.push(points);
-        }
+        // NaN points (domain holes like sqrt of a negative) fall out in the
+        // y_acc range filter below — NaN fails every comparison.
+        points_collection.push(points);
     }
 
     master_y_max += Y_AXIS_PADDING;

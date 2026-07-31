@@ -11,4 +11,5 @@ pub(crate) mod logger;
 pub(crate) mod repl;
 pub(crate) mod run;
 pub(crate) mod string_maker;
+#[cfg(test)]
 pub(crate) mod tests;

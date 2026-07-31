@@ -15,9 +15,9 @@ pub(crate) struct Repl {
     pub(crate) bindings_path: Option<PathBuf>,
 }
 
-//the Repl object is a user session object
-//store results of math problems
-//give a session cache, debug flags
+/// Narrowest usable graph: one braille glyph spans 2×4 cells and height is
+/// width/2, so anything under 8 renders zero glyph rows.
+pub(crate) const MIN_GRAPH_WIDTH: usize = 8;
 
 impl Repl {
     pub(crate) fn new(width: usize) -> Self {
@@ -30,9 +30,15 @@ impl Repl {
         }
     }
 
-    pub(crate) fn update_dimensions(&mut self, width: usize) {
+    /// Applies a new graph width (height tracks at width/2). Returns false,
+    /// leaving dimensions unchanged, if `width` is below [`MIN_GRAPH_WIDTH`].
+    pub(crate) fn update_dimensions(&mut self, width: usize) -> bool {
+        if width < MIN_GRAPH_WIDTH {
+            return false;
+        }
         self.height = width / 2;
         self.width = width;
+        true
     }
 
     /// Records a successful evaluation's result as the `ans` binding.
