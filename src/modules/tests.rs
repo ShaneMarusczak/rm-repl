@@ -368,7 +368,7 @@ mod rmr_tests {
         let_line("let g(x) = a * x", &mut repl, &mut test_logger);
         bindings::undefine("a", &mut repl, &mut test_logger);
 
-        //When: g's body no longer resolves at call time
+        //When: g is called but `a`, used in its body, is undefined
         evaluate("g(2)", &mut repl, &mut test_logger);
 
         //Then: the error reprints the definition and carets into the body
